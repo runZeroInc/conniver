@@ -22,3 +22,8 @@ _testmain.go
 *.exe
 *.test
 *.prof
+junk
+.idea
+cmd/delta
+cmd/exporter_example1/exporter_example1
+cmd/exporter_example2/exporter_example2
