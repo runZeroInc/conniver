@@ -1,8 +1,8 @@
 Derived from https://github.com/simeonmiteff/go-tcpinfo/
 
-Copyright (c) 2025, Simeon Miteff.
 Copyright (c) 2022, Xerra Earth Observation Institute.
-
+Copyright (c) 2025, Simeon Miteff.
+Copyright (c) 2026, runZero, Inc.
 
 Mozilla Public License Version 2.0
 ==================================
