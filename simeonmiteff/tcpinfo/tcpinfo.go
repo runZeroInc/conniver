@@ -7,24 +7,24 @@ import (
 )
 
 type Info struct {
-	State               string        `json:"state"`                  // Connection state
-	Options             []Option      `json:"options,omitempty"`      // Requesting options
-	PeerOptions         []Option      `json:"peer_options,omitempty"` // Options requested from peer
-	SenderMSS           uint64        `json:"snd_mss"`                // Maximum segment size for sender in bytes
-	ReceiverMSS         uint64        `json:"rcv_mss"`                // Maximum segment size for receiver in bytes
-	RTT                 time.Duration `json:"rtt"`                    // Round-trip time
-	RTTVar              time.Duration `json:"rttvar"`                 // Round-trip time variation
-	RTO                 time.Duration `json:"rto"`                    // Retransmission timeout
-	ATO                 time.Duration `json:"ato"`                    // Delayed acknowledgement timeout [Linux only]
-	LastDataSent        time.Duration `json:"last_data_sent"`         // Since last data sent [Linux only]
-	LastDataReceived    time.Duration `json:"last_data_rcvd"`         // Since last data received [FreeBSD and Linux]
-	LastAckReceived     time.Duration `json:"last_ack_rcvd"`          // Since last ack received [Linux only]
-	ReceiverWindow      uint64        `json:"rcv_wnd"`                // advertised receiver window in bytes
-	SenderSSThreshold   uint64        `json:"snd_ssthresh"`           // slow start threshold for sender in bytes or # of segments
-	ReceiverSSThreshold uint64        `json:"rcv_ssthresh"`           // slow start threshold for receiver in bytes [Linux only]
-	SenderWindowBytes   uint64        `json:"snd_cwnd_bytes"`         // congestion window for sender in bytes [Darwin and FreeBSD]
-	SenderWindowSegs    uint64        `json:"snd_cwnd_segs"`          // congestion window for sender in # of segments [Linux and NetBSD]
-	Sys                 *SysInfo      `json:"sys,omitempty"`          // Platform-specific information
+	State               string        `json:"state"`                 // Connection state
+	Options             []Option      `json:"options,omitempty"`     // Requesting options
+	PeerOptions         []Option      `json:"peerOptions,omitempty"` // Options requested from peer
+	SenderMSS           uint64        `json:"sendMSS"`               // Maximum segment size for sender in bytes
+	ReceiverMSS         uint64        `json:"recvMSS"`               // Maximum segment size for receiver in bytes
+	RTT                 time.Duration `json:"rtt"`                   // Round-trip time
+	RTTVar              time.Duration `json:"rttVar"`                // Round-trip time variation
+	RTO                 time.Duration `json:"rto"`                   // Retransmission timeout
+	ATO                 time.Duration `json:"ato"`                   // Delayed acknowledgement timeout [Linux only]
+	LastDataSent        time.Duration `json:"lastDataSent"`          // Since last data sent [Linux only]
+	LastDataReceived    time.Duration `json:"lastDataReceived"`      // Since last data received [FreeBSD and Linux]
+	LastAckReceived     time.Duration `json:"lastAckReceived"`       // Since last ack received [Linux only]
+	ReceiverWindow      uint64        `json:"recvWindow"`            // advertised receiver window in bytes
+	SenderSSThreshold   uint64        `json:"sendSSThreshold"`       // slow start threshold for sender in bytes or # of segments
+	ReceiverSSThreshold uint64        `json:"recvSSThreshold"`       // slow start threshold for receiver in bytes [Linux only]
+	SenderWindowBytes   uint64        `json:"sendCWindowdBytes"`     // congestion window for sender in bytes [Darwin and FreeBSD]
+	SenderWindowSegs    uint64        `json:"sendCWindowSegs"`       // congestion window for sender in # of segments [Linux and NetBSD]
+	Sys                 *SysInfo      `json:"sys,omitempty"`         // Platform-specific information
 }
 
 type Option struct {
@@ -58,8 +58,8 @@ func (i *Info) MarshalJSON() ([]byte, error) {
 		}
 		raw["peerOptions"] = opts
 	}
-	raw["sMSS"] = i.SenderMSS
-	raw["rMSS"] = i.ReceiverMSS
+	raw["sendMSS"] = i.SenderMSS
+	raw["recvMSS"] = i.ReceiverMSS
 	raw["rtt"] = i.RTT
 	raw["rttVar"] = i.RTTVar
 	raw["rto"] = i.RTO
@@ -67,11 +67,11 @@ func (i *Info) MarshalJSON() ([]byte, error) {
 	raw["lastDataSent"] = i.LastDataSent
 	raw["lastDataReceived"] = i.LastDataReceived
 	raw["lastAckReceived"] = i.LastAckReceived
-	raw["rWindow"] = i.ReceiverWindow
-	raw["sSSThreshold"] = i.SenderSSThreshold
-	raw["rSSThreshold"] = i.ReceiverSSThreshold
-	raw["sWindowBytes"] = i.SenderWindowBytes
-	raw["sWindowSegs"] = i.SenderWindowSegs
+	raw["recvWindow"] = i.ReceiverWindow
+	raw["sendSSThreshold"] = i.SenderSSThreshold
+	raw["recvSSThreshold"] = i.ReceiverSSThreshold
+	raw["sendWindowBytes"] = i.SenderWindowBytes
+	raw["sendWindowSegs"] = i.SenderWindowSegs
 	if i.Sys != nil {
 		raw["sys"] = i.Sys
 	}
