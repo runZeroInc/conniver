@@ -2,6 +2,7 @@ package tcpinfo
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 )
 
@@ -31,39 +32,46 @@ type Option struct {
 	Value uint64 `json:"value"`
 }
 
+func (o *Option) String() string {
+	if o.Value == 0 {
+		return o.Kind
+	}
+	return fmt.Sprintf("%s:%.2x", o.Kind, o.Value)
+}
+
 // MarshalJSON implements the MarshalJSON method of json.Marshaler
 // interface.
 func (i *Info) MarshalJSON() ([]byte, error) {
 	raw := make(map[string]interface{})
 	raw["state"] = i.State
 	if len(i.Options) > 0 {
-		opts := make(map[string]interface{})
+		opts := make([]string, 0, len(i.Options))
 		for _, opt := range i.Options {
-			opts[opt.Kind] = opt
+			opts = append(opts, opt.String())
 		}
 		raw["options"] = opts
 	}
 	if len(i.PeerOptions) > 0 {
-		opts := make(map[string]interface{})
+		opts := make([]string, 0, len(i.PeerOptions))
 		for _, opt := range i.PeerOptions {
-			opts[opt.Kind] = opt
+			opts = append(opts, opt.String())
 		}
-		raw["peer_options"] = opts
+		raw["peerOptions"] = opts
 	}
-	raw["snd_mss"] = i.SenderMSS
-	raw["rcv_mss"] = i.ReceiverMSS
+	raw["sMSS"] = i.SenderMSS
+	raw["rMSS"] = i.ReceiverMSS
 	raw["rtt"] = i.RTT
-	raw["rttvar"] = i.RTTVar
+	raw["rttVar"] = i.RTTVar
 	raw["rto"] = i.RTO
 	raw["ato"] = i.ATO
-	raw["last_data_sent"] = i.LastDataSent
-	raw["last_data_rcvd"] = i.LastDataReceived
-	raw["last_ack_rcvd"] = i.LastAckReceived
-	raw["rcv_wnd"] = i.ReceiverWindow
-	raw["snd_ssthresh"] = i.SenderSSThreshold
-	raw["rcv_ssthresh"] = i.ReceiverSSThreshold
-	raw["snd_cwnd_bytes"] = i.SenderWindowBytes
-	raw["snd_cwnd_segs"] = i.SenderWindowSegs
+	raw["lastDataSent"] = i.LastDataSent
+	raw["lastDataReceived"] = i.LastDataReceived
+	raw["lastAckReceived"] = i.LastAckReceived
+	raw["rWindow"] = i.ReceiverWindow
+	raw["sSSThreshold"] = i.SenderSSThreshold
+	raw["rSSThreshold"] = i.ReceiverSSThreshold
+	raw["sWindowBytes"] = i.SenderWindowBytes
+	raw["sWindowSegs"] = i.SenderWindowSegs
 	if i.Sys != nil {
 		raw["sys"] = i.Sys
 	}

@@ -56,15 +56,14 @@ func (w *Conn) gatherAndReport(state int) {
 		return
 	}
 
-	// Only gather TCP info on open and close events
+	// Only gather TCP info on open and close events once
 	if state != Opened && state != Closed {
 		return
 	}
-
-	// Prevent multiple reports for open/close states
 	if state == Opened && w.OpenedInfo != nil {
 		return
-	} else if state == Closed && w.ClosedInfo != nil {
+	}
+	if state == Closed && w.ClosedInfo != nil {
 		return
 	}
 

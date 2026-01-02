@@ -94,31 +94,31 @@ type RawInfo struct {
 
 // SysInfo is a gopher-style unpacked representation of RawTCPInfo.
 type SysInfo struct {
-	State               uint8    `tcpi:"name=state,prom_type=gauge,prom_help='Connection state, see bsd/netinet/tcp_fsm.h'" json:"state"`
-	StateName           string   `tcpi:"name=state_name,prom_type=gauge,prom_help='Connection state name, see bsd/netinet/tcp_fsm.h'" json:"state_name"`
-	SndWScale           uint8    `tcpi:"name=snd_wscale,prom_type=gauge,prom_help='Window scaling of send-half of connection.'" json:"snd_wscale"`
-	RcvWScale           uint8    `tcpi:"name=rcv_wscale,prom_type=gauge,prom_help='Window scaling of receive-half of connection.'" json:"rcv_wscale"`
+	State               uint8    `tcpi:"name=state,prom_type=gauge,prom_help='Connection state, see bsd/netinet/tcp_fsm.h'" json:"-"`
+	StateName           string   `tcpi:"name=state_name,prom_type=gauge,prom_help='Connection state name, see bsd/netinet/tcp_fsm.h'" json:"state"`
+	SndWScale           uint8    `tcpi:"name=snd_wscale,prom_type=gauge,prom_help='Window scaling of send-half of connection.'" json:"sendWScale"`
+	RcvWScale           uint8    `tcpi:"name=rcv_wscale,prom_type=gauge,prom_help='Window scaling of receive-half of connection.'" json:"recvWScale"`
 	Options             []Option `tcpi:"name=options,prom_type=gauge,prom_help='TCP options supported.'" json:"options"`
-	PeerOptions         []Option `tcpi:"name=peer_options,prom_type=gauge,prom_help='TCP options supported.'" json:"peer_options"`
+	PeerOptions         []Option `tcpi:"name=peer_options,prom_type=gauge,prom_help='TCP options supported.'" json:"peerOptions"`
 	Flags               string   `tcpi:"name=flags,prom_type=gauge,prom_help='TCP flags.'" json:"flags"`
 	RTO                 uint64   `tcpi:"name=rto,prom_type=gauge,prom_help='Retransmit timeout in nanoseconds.'" json:"rto"`
-	MaxSeg              uint32   `tcpi:"name=max_seg,prom_type=gauge,prom_help='Maximum segment size supported in bytes.'" json:"max_seg"`
-	SendSSThresh        uint32   `tcpi:"name=send_ssthresh,prom_type=gauge,prom_help='Slow start threshold in bytes.'" json:"send_ssthresh"`
-	SendCwnd            uint32   `tcpi:"name=send_cwnd,prom_type=gauge,prom_help='Send congestion window in bytes.'" json:"send_cwnd"`
-	SendWnd             uint32   `tcpi:"name=send_wnd,prom_type=gauge,prom_help='Send window in bytes.'" json:"send_wnd"`
-	SendSBBytes         uint32   `tcpi:"name=send_sbbytes,prom_type=gauge,prom_help='Bytes in send socket buffer, including in-flight data.'" json:"send_sbbytes"`
-	RecvWnd             uint32   `tcpi:"name=recv_wnd,prom_type=gauge,prom_help='Receive window in bytes.'" json:"recv_wnd"`
-	RTTCur              uint64   `tcpi:"name=rtt_cur,prom_type=gauge,prom_help='Most recent RTT in nanoseconds.'" json:"rtt_cur"`
-	SRTT                uint64   `tcpi:"name=srtt,prom_type=gauge,prom_help='Average RTT in nanoseconds.'" json:"srtt"`
-	RTTVar              uint64   `tcpi:"name=rtt_var,prom_type=gauge,prom_help='RTT variance in nanoseconds.'" json:"rtt_var"`
-	TFOFlags            uint32   `tcpi:"name=tfo_flags,prom_type=gauge,prom_help='TCP Fast Open flags.'" json:"tfo_flags"`
-	TxPackets           uint64   `tcpi:"name=tx_packets,prom_type=gauge,prom_help='Number of packets sent.'" json:"tx_packets"`
-	TxBytes             uint64   `tcpi:"name=tx_bytes,prom_type=gauge,prom_help='Number of bytes sent.'" json:"tx_bytes"`
-	TxRetransmitBytes   uint64   `tcpi:"name=tx_retransmit_bytes,prom_type=gauge,prom_help='Number of retransmitted bytes.'" json:"tx_retransmit_bytes"`
-	RxPackets           uint64   `tcpi:"name=rx_packets,prom_type=gauge,prom_help='Number of packets received.'" json:"rx_packets"`
-	RxBytes             uint64   `tcpi:"name=rx_bytes,prom_type=gauge,prom_help='Number of bytes received.'" json:"rx_bytes"`
-	RxOutOfOrderBytes   uint64   `tcpi:"name=rx_out_of_order_bytes,prom_type=gauge,prom_help='Number of out-of-order bytes received.'" json:"rx_out_of_order_bytes"`
-	TxRetransmitPackets uint64   `tcpi:"name=tx_retransmit_packets,prom_type=gauge,prom_help='Number of retransmitted packets.'" json:"tx_retransmit_packets"`
+	MaxSeg              uint32   `tcpi:"name=max_seg,prom_type=gauge,prom_help='Maximum segment size supported in bytes.'" json:"mss"`
+	SendSSThresh        uint32   `tcpi:"name=send_ssthresh,prom_type=gauge,prom_help='Slow start threshold in bytes.'" json:"sendSSThreshold"`
+	SendCwnd            uint32   `tcpi:"name=send_cwnd,prom_type=gauge,prom_help='Send congestion window in bytes.'" json:"sendCWindowBytes"`
+	SendWnd             uint32   `tcpi:"name=send_wnd,prom_type=gauge,prom_help='Send window in bytes.'" json:"sendWnd"`
+	SendSBBytes         uint32   `tcpi:"name=send_sbbytes,prom_type=gauge,prom_help='Bytes in send socket buffer, including in-flight data.'" json:"sendSBBytes"`
+	RecvWnd             uint32   `tcpi:"name=recv_wnd,prom_type=gauge,prom_help='Receive window in bytes.'" json:"recvWnd"`
+	RTTCur              uint64   `tcpi:"name=rtt_cur,prom_type=gauge,prom_help='Most recent RTT in nanoseconds.'" json:"rttCur"`
+	SRTT                uint64   `tcpi:"name=srtt,prom_type=gauge,prom_help='Average RTT in nanoseconds.'" json:"rttSmoothed"`
+	RTTVar              uint64   `tcpi:"name=rtt_var,prom_type=gauge,prom_help='RTT variance in nanoseconds.'" json:"rttVar"`
+	TFOFlags            uint32   `tcpi:"name=tfo_flags,prom_type=gauge,prom_help='TCP Fast Open flags.'" json:"tfoFlags"`
+	TxPackets           uint64   `tcpi:"name=tx_packets,prom_type=gauge,prom_help='Number of packets sent.'" json:"txPackets"`
+	TxBytes             uint64   `tcpi:"name=tx_bytes,prom_type=gauge,prom_help='Number of bytes sent.'" json:"txBytes"`
+	TxRetransmitBytes   uint64   `tcpi:"name=tx_retransmit_bytes,prom_type=gauge,prom_help='Number of retransmitted bytes.'" json:"txRetransmitBytes"`
+	RxPackets           uint64   `tcpi:"name=rx_packets,prom_type=gauge,prom_help='Number of packets received.'" json:"rxPackets"`
+	RxBytes             uint64   `tcpi:"name=rx_bytes,prom_type=gauge,prom_help='Number of bytes received.'" json:"rxBytes"`
+	RxOutOfOrderBytes   uint64   `tcpi:"name=rx_out_of_order_bytes,prom_type=gauge,prom_help='Number of out-of-order bytes received.'" json:"rxOutOfOrderBytes"`
+	TxRetransmitPackets uint64   `tcpi:"name=tx_retransmit_packets,prom_type=gauge,prom_help='Number of retransmitted packets.'" json:"txRetransmitPackets"`
 }
 
 // Unpack converts fields from RawInfo to SysInfo
@@ -155,8 +155,8 @@ func (packed *RawInfo) Unpack() *SysInfo {
 		}
 		switch flag {
 		case TCPCI_OPT_SACK, TCPCI_OPT_ECN, TCPCI_OPT_TIMESTAMPS:
-			unpacked.Options = append(unpacked.Options, Option{Kind: tcpOptionsMap[flag], Value: 1})
-			unpacked.PeerOptions = append(unpacked.PeerOptions, Option{Kind: tcpOptionsMap[flag], Value: 1})
+			unpacked.Options = append(unpacked.Options, Option{Kind: tcpOptionsMap[flag], Value: 0})
+			unpacked.PeerOptions = append(unpacked.PeerOptions, Option{Kind: tcpOptionsMap[flag], Value: 0})
 		case TCPCI_OPT_WSCALE:
 			unpacked.Options = append(unpacked.Options, Option{Kind: tcpOptionsMap[flag], Value: uint64(packed.SendWscale)})
 			unpacked.PeerOptions = append(unpacked.PeerOptions, Option{Kind: tcpOptionsMap[flag], Value: uint64(packed.RecvWscale)})
@@ -262,9 +262,9 @@ const (
 )
 
 var tcpOptionsMap = map[uint32]string{
-	TCPCI_OPT_TIMESTAMPS: "TIMESTAMPS",
+	TCPCI_OPT_TIMESTAMPS: "Timestamps",
 	TCPCI_OPT_SACK:       "SACK",
-	TCPCI_OPT_WSCALE:     "WSCALE",
+	TCPCI_OPT_WSCALE:     "WindowScale",
 	TCPCI_OPT_ECN:        "ECN",
 }
 
