@@ -153,7 +153,7 @@ type SysInfo struct {
 	BytesReceived          NullableUint64   `tcpi:"name=bytes_received,prom_type=counter,prom_help='The number of data bytes for which cumulative acknowledgments have been sent | RFC4898 tcpEStatsAppHCThruOctetsReceived.'" json:"bytesReceived,omitempty"`
 	SegsOut                NullableUint32   `tcpi:"name=segs_out,prom_type=gauge,prom_help='The number of segments transmitted. Includes data and pure ACKs | RFC4898 tcpEStatsPerfSegsOut.'" json:"segsOut,omitempty"`
 	SegsIn                 NullableUint32   `tcpi:"name=segs_in,prom_type=gauge,prom_help='The number of segments received. Includes data and pure ACKs | RFC4898 tcpEStatsPerfSegsIn.'" json:"segsIn,omitempty"`
-	NotsentBytes           NullableUint32   `tcpi:"name=notsent_bytes,prom_type=gauge,prom_help='Number of bytes queued in the send buffer that have not been sent.'" json:"notSentBytes,omitempty"`
+	NotSentBytes           NullableUint32   `tcpi:"name=notsent_bytes,prom_type=gauge,prom_help='Number of bytes queued in the send buffer that have not been sent.'" json:"notSentBytes,omitempty"`
 	MinRTT                 NullableDuration `tcpi:"name=min_rtt,prom_type=gauge,prom_help='Minimum RTT. From an older, pre-BBR algorithm.'" json:"minRTT,omitempty"`
 	DataSegsIn             NullableUint32   `tcpi:"name=data_segs_in,prom_type=gauge,prom_help='Input segments carrying data (len>0) | RFC4898 tcpEStatsDataSegsIn (actually tcpEStatsPerfDataSegsIn).'" json:"dataSegsIn,omitempty"`
 	DataSegsOut            NullableUint32   `tcpi:"name=data_segs_out,prom_type=gauge,prom_help='Transmitted segments carrying data (len>0) | RFC4898 tcpEStatsDataSegsOut (actually tcpEStatsPerfDataSegsOut).'" json:"dataSegsOut,omitempty"`
@@ -167,9 +167,9 @@ type SysInfo struct {
 	BytesRetrans           NullableUint64   `tcpi:"name=bytes_retrans,prom_type=gauge,prom_help='Bytes retransmitted. May include headers and new data carried with a retransmission (for thin flows) | RFC4898 tcpEStatsPerfOctetsRetrans.'" json:"bytesRetrans,omitempty"`
 	DSACKDups              NullableUint32   `tcpi:"name=dsack_dups,prom_type=gauge,prom_help='Duplicate segments reported by DSACK | RFC4898 tcpEStatsStackDSACKDups.'" json:"dsackDups,omitempty"`
 	ReordSeen              NullableUint32   `tcpi:"name=reord_seen,prom_type=counter,prom_help='Received ACKs that were out of order. Estimates reordering on the return path.'" json:"reordSeen,omitempty"`
-	RcvOOOPack             NullableUint32   `tcpi:"name=rcv_ooopack,prom_type=counter,prom_help='Out-of-order packets received.'" json:"recvOOOPackets,omitempty"`
-	SndWnd                 NullableUint32   `tcpi:"name=snd_wnd,prom_type=gauge,prom_help='Peers advertised receive window after scaling (bytes).'" json:"sendWnd,omitempty"`
-	RcvWnd                 NullableUint32   `tcpi:"name=rcv_wnd,prom_type=gauge,prom_help='local advertised receive window after scaling (bytes).'" json:"recvWnd,omitempty"`
+	RcvOOOPacket             NullableUint32   `tcpi:"name=rcv_ooopack,prom_type=counter,prom_help='Out-of-order packets received.'" json:"recvOOOPackets,omitempty"`
+	SendWindow                 NullableUint32   `tcpi:"name=snd_wnd,prom_type=gauge,prom_help='Peers advertised receive window after scaling (bytes).'" json:"sendWnd,omitempty"`
+	RecvWindow                 NullableUint32   `tcpi:"name=rcv_wnd,prom_type=gauge,prom_help='local advertised receive window after scaling (bytes).'" json:"recvWnd,omitempty"`
 	Rehash                 NullableUint32   `tcpi:"name=rehash,prom_type=gauge,prom_help='PLB or timeout triggered rehash attempts.'" json:"rehash,omitempty"`
 	TotalRTO               NullableUint16   `tcpi:"name=total_rto,prom_type=counter,prom_help='Total number of RTO timeouts, including SYN/SYN-ACK and recurring timeouts.'" json:"totalRTO,omitempty"`
 	TotalRTORecoveries     NullableUint16   `tcpi:"name=total_rto_recoveries,prom_type=counter,prom_help='Total number of RTO recoveries, including any unfinished recovery.'" json:"totalRTORecoveries,omitempty"`
@@ -255,13 +255,13 @@ func (packed *RawInfo) Unpack() *SysInfo {
 		unpacked.SegsIn.Value = packed.segs_in
 	}
 
-	unpacked.NotsentBytes = NullableUint32{Valid: false}
+	unpacked.NotSentBytes = NullableUint32{Valid: false}
 	unpacked.MinRTT = NullableDuration{Valid: false}
 	unpacked.DataSegsIn = NullableUint32{Valid: false}
 	unpacked.DataSegsOut = NullableUint32{Valid: false}
 	if kernelVersionIsAtLeast_4_6 {
-		unpacked.NotsentBytes.Valid = true
-		unpacked.NotsentBytes.Value = packed.notsent_bytes
+		unpacked.NotSentBytes.Valid = true
+		unpacked.NotSentBytes.Value = packed.notsent_bytes
 		unpacked.MinRTT.Valid = true
 		unpacked.MinRTT.Value = time.Duration(packed.min_rtt) * time.Millisecond
 		unpacked.DataSegsIn.Valid = true
@@ -312,23 +312,23 @@ func (packed *RawInfo) Unpack() *SysInfo {
 		unpacked.ReordSeen.Value = packed.reord_seen
 	}
 
-	unpacked.RcvOOOPack = NullableUint32{Valid: false}
-	unpacked.SndWnd = NullableUint32{Valid: false}
+	unpacked.RcvOOOPacket = NullableUint32{Valid: false}
+	unpacked.SendWindow = NullableUint32{Valid: false}
 	if kernelVersionIsAtLeast_5_4 {
-		unpacked.RcvOOOPack.Valid = true
-		unpacked.RcvOOOPack.Value = packed.rcv_ooopack
-		unpacked.SndWnd.Valid = true
-		unpacked.SndWnd.Value = packed.snd_wnd
+		unpacked.RcvOOOPacket.Valid = true
+		unpacked.RcvOOOPacket.Value = packed.rcv_ooopack
+		unpacked.SendWindow.Valid = true
+		unpacked.SendWindow.Value = packed.snd_wnd
 	}
 
-	unpacked.RcvWnd = NullableUint32{Valid: false}
+	unpacked.RecvWindow = NullableUint32{Valid: false}
 	unpacked.Rehash = NullableUint32{Valid: false}
 	unpacked.TotalRTO = NullableUint16{Valid: false}
 	unpacked.TotalRTORecoveries = NullableUint16{Valid: false}
 	unpacked.TotalRTOTime = NullableUint32{Valid: false}
 	if kernelVersionIsAtLeast_6_2 {
-		unpacked.RcvWnd.Valid = true
-		unpacked.RcvWnd.Value = packed.rcv_wnd
+		unpacked.RecvWindow.Valid = true
+		unpacked.RecvWindow.Value = packed.rcv_wnd
 		unpacked.Rehash.Valid = true
 		unpacked.Rehash.Value = packed.rehash
 		unpacked.TotalRTO.Valid = true

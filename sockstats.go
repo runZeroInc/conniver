@@ -39,7 +39,8 @@ type Conn struct {
 
 // WrapConn wraps the given net.Conn, triggers an immediate report in Open state,
 // and returns the wrapped connection. Reads and writes are tracked and the final
-// report is triggered on Close.
+// report is triggered on Close. Separate tcpinfo stats are gathered on open and
+// close events.
 func WrapConn(ncon net.Conn, reportStatsFn ReportStatsFn) net.Conn {
 	w := &Conn{
 		Conn:            ncon,

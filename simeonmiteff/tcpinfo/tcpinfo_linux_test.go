@@ -25,8 +25,8 @@ const (
 func TestRawTCPInfo_Unpack(t *testing.T) {
 	type fields struct {
 		kernel                 kernel.VersionInfo
-		SndWScale              uint8
-		RcvWScale              uint8
+		SendWScale             uint8
+		RecvWScale             uint8
 		DeliveryRateAppLimited NullableBool
 		FastOpenClientFail     NullableUint8
 	}
@@ -40,7 +40,7 @@ func TestRawTCPInfo_Unpack(t *testing.T) {
 		BytesReceived:          NullableUint64{Valid: true},
 		SegsOut:                NullableUint32{Valid: true},
 		SegsIn:                 NullableUint32{Valid: true},
-		NotsentBytes:           NullableUint32{Valid: true},
+		NotSentBytes:           NullableUint32{Valid: true},
 		MinRTT:                 NullableDuration{Valid: true},
 		DataSegsIn:             NullableUint32{Valid: true},
 		DataSegsOut:            NullableUint32{Valid: true},
@@ -54,13 +54,13 @@ func TestRawTCPInfo_Unpack(t *testing.T) {
 		BytesRetrans:           NullableUint64{Valid: true},
 		DSACKDups:              NullableUint32{Valid: true},
 		ReordSeen:              NullableUint32{Valid: true},
-		RcvOOOPack:             NullableUint32{Valid: true},
-		SndWnd:                 NullableUint32{Valid: true},
-		// RcvWnd:                 NullableUint32{Valid: true},
-		// Rehash:                 NullableUint32{Valid: true},
-		// TotalRTO:               NullableUint16{Valid: true},
-		// TotalRTORecoveries:     NullableUint16{Valid: true},
-		// TotalRTOTime:           NullableUint32{Valid: true},
+		RcvOOOPacket:           NullableUint32{Valid: true},
+		SendWindow:             NullableUint32{Valid: true},
+		RecvWindow:             NullableUint32{Valid: true},
+		Rehash:                 NullableUint32{Valid: true},
+		TotalRTO:               NullableUint16{Valid: true},
+		TotalRTORecoveries:     NullableUint16{Valid: true},
+		TotalRTOTime:           NullableUint32{Valid: true},
 	}
 
 	wantDeliveryRateAppLimited := baseDesire
@@ -95,8 +95,8 @@ func TestRawTCPInfo_Unpack(t *testing.T) {
 			name: "zeros",
 			fields: fields{
 				kernel:                 kernel.VersionInfo{Kernel: minKernel, Major: minKernelMajor, Minor: minKernelMinor},
-				SndWScale:              0,
-				RcvWScale:              0,
+				SendWScale:             0,
+				RecvWScale:             0,
 				DeliveryRateAppLimited: NullableBool{},
 				FastOpenClientFail:     NullableUint8{},
 			},
@@ -106,8 +106,8 @@ func TestRawTCPInfo_Unpack(t *testing.T) {
 			name: "SndWScale1",
 			fields: fields{
 				kernel:                 kernel.VersionInfo{Kernel: minKernel, Major: minKernelMajor, Minor: minKernelMinor},
-				SndWScale:              1,
-				RcvWScale:              0,
+				SendWScale:             1,
+				RecvWScale:             0,
 				DeliveryRateAppLimited: NullableBool{Valid: true, Value: false},
 				FastOpenClientFail:     NullableUint8{Valid: true, Value: 0},
 			},
@@ -117,8 +117,8 @@ func TestRawTCPInfo_Unpack(t *testing.T) {
 			name: "RcvWScale1",
 			fields: fields{
 				kernel:                 kernel.VersionInfo{Kernel: minKernel, Major: minKernelMajor, Minor: minKernelMinor},
-				SndWScale:              0,
-				RcvWScale:              1,
+				SendWScale:             0,
+				RecvWScale:             1,
 				DeliveryRateAppLimited: NullableBool{Valid: true, Value: false},
 				FastOpenClientFail:     NullableUint8{Valid: true, Value: 0},
 			},
@@ -128,8 +128,8 @@ func TestRawTCPInfo_Unpack(t *testing.T) {
 			name: "SndWScaleF",
 			fields: fields{
 				kernel:                 kernel.VersionInfo{Kernel: minKernel, Major: minKernelMajor, Minor: minKernelMinor},
-				SndWScale:              0xf,
-				RcvWScale:              0,
+				SendWScale:             0xf,
+				RecvWScale:             0,
 				DeliveryRateAppLimited: NullableBool{Valid: true, Value: false},
 				FastOpenClientFail:     NullableUint8{Valid: true, Value: 0},
 			},
@@ -139,8 +139,8 @@ func TestRawTCPInfo_Unpack(t *testing.T) {
 			name: "RcvWScaleF",
 			fields: fields{
 				kernel:                 kernel.VersionInfo{Kernel: minKernel, Major: minKernelMajor, Minor: minKernelMinor},
-				SndWScale:              0,
-				RcvWScale:              0xf,
+				SendWScale:             0,
+				RecvWScale:             0xf,
 				DeliveryRateAppLimited: NullableBool{Valid: true, Value: false},
 				FastOpenClientFail:     NullableUint8{Valid: true, Value: 0},
 			},
@@ -150,8 +150,8 @@ func TestRawTCPInfo_Unpack(t *testing.T) {
 			name: "DeliveryRateAppLimited",
 			fields: fields{
 				kernel:                 kernel.VersionInfo{Kernel: minKernel, Major: minKernelMajor, Minor: minKernelMinor},
-				SndWScale:              0,
-				RcvWScale:              0,
+				SendWScale:             0,
+				RecvWScale:             0,
 				DeliveryRateAppLimited: NullableBool{Valid: true, Value: true},
 				FastOpenClientFail:     NullableUint8{Valid: true, Value: 0},
 			},
@@ -161,8 +161,8 @@ func TestRawTCPInfo_Unpack(t *testing.T) {
 			name: "FastOpenClientFail0",
 			fields: fields{
 				kernel:                 kernel.VersionInfo{Kernel: minKernel, Major: minKernelMajor, Minor: minKernelMinor},
-				SndWScale:              0,
-				RcvWScale:              0,
+				SendWScale:             0,
+				RecvWScale:             0,
 				DeliveryRateAppLimited: NullableBool{Valid: true, Value: false},
 				FastOpenClientFail:     NullableUint8{Valid: true, Value: 0},
 			},
@@ -172,8 +172,8 @@ func TestRawTCPInfo_Unpack(t *testing.T) {
 			name: "FastOpenClientFail0",
 			fields: fields{
 				kernel:                 kernel.VersionInfo{Kernel: minKernel, Major: minKernelMajor, Minor: minKernelMinor},
-				SndWScale:              0,
-				RcvWScale:              0,
+				SendWScale:             0,
+				RecvWScale:             0,
 				DeliveryRateAppLimited: NullableBool{Valid: true, Value: false},
 				FastOpenClientFail:     NullableUint8{Valid: true, Value: 1},
 			},
@@ -183,8 +183,8 @@ func TestRawTCPInfo_Unpack(t *testing.T) {
 			name: "FastOpenClientFail2",
 			fields: fields{
 				kernel:                 kernel.VersionInfo{Kernel: minKernel, Major: minKernelMajor, Minor: minKernelMinor},
-				SndWScale:              0,
-				RcvWScale:              0,
+				SendWScale:             0,
+				RecvWScale:             0,
 				DeliveryRateAppLimited: NullableBool{Valid: true, Value: false},
 				FastOpenClientFail:     NullableUint8{Valid: true, Value: 2},
 			},
