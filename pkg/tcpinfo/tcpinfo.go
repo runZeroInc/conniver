@@ -25,6 +25,7 @@ type Info struct {
 	RxSSThreshold uint64        `json:"rxSSThreshold,omitempty"`  // Slow start threshold for receiver in bytes [Linux only]
 	TxWindowBytes uint64        `json:"txCWindowBytes,omitempty"` // Congestion window for sender in bytes [Darwin and FreeBSD]
 	TxWindowSegs  uint64        `json:"txCWindowSegs,omitempty"`  // Congestion window for sender in # of segments [Linux and NetBSD]
+	Retransmits   uint64        `json:"retransmits,omitempty"`    // Number of retransmissions (segments or packets)
 	Sys           *SysInfo      `json:"sysInfo,omitempty"`        // Platform-specific information
 }
 

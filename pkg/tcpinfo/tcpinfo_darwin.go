@@ -183,6 +183,7 @@ func (s *SysInfo) ToInfo() *Info {
 		TxSSThreshold: uint64(s.TxSSThreshold),
 		TxWindowBytes: uint64(s.TxCWindow),
 		TxWindowSegs:  uint64(s.TxWindow),
+		Retransmits:   s.TxRetransmitPackets,
 		Sys:           s,
 	}
 	return info

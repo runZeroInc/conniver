@@ -379,11 +379,9 @@ func (s *SysInfo) ToInfo() *Info {
 		TxSSThreshold: uint64(s.TxSSThreshold),
 		RxSSThreshold: uint64(s.RxSSThreshold),
 		TxWindowSegs:  uint64(s.TxCWindow),
+		Retransmits:   uint64(s.TotalRetrans),
 		Sys:           s,
 	}
-
-	info.TxOptions = s.TxOptions
-	info.RxOptions = s.RxOptions
 
 	return info
 }
