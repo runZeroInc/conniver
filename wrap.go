@@ -1,6 +1,7 @@
 package conniver
 
 import (
+	"context"
 	"net"
 	"time"
 
@@ -20,7 +21,9 @@ var StateMap = map[int]string{
 type ReportStatsFn func(tic *Conn, state int)
 
 type Conn struct {
-	net.Conn        `json:"-"`
+	net.Conn `json:"-"`
+	Context  context.Context `json:"-"`
+
 	reportStats     func(*Conn, int) `json:"-"`
 	OpenedAt        int64            `json:"openedAt,omitempty"`
 	ClosedAt        int64            `json:"closedAt,omitempty"`
@@ -42,11 +45,20 @@ type Conn struct {
 // report is triggered on Close. Separate tcpinfo stats are gathered on open and
 // close events.
 func WrapConn(ncon net.Conn, reportStatsFn ReportStatsFn) net.Conn {
+	return WrapConnWithContext(context.Background(), ncon, reportStatsFn)
+}
+
+// WrapConnWithContext wraps the given net.Conn, triggers an immediate report in Open state,
+// and returns the wrapped connection. Reads and writes are tracked and the final
+// report is triggered on Close. Separate tcpinfo stats are gathered on open and
+// close events.
+func WrapConnWithContext(ctx context.Context, ncon net.Conn, reportStatsFn ReportStatsFn) net.Conn {
 	w := &Conn{
 		Conn:            ncon,
 		reportStats:     reportStatsFn,
 		OpenedAt:        time.Now().UnixNano(),
 		supportsTCPInfo: tcpinfo.Supported(),
+		Context:         ctx,
 	}
 	w.gatherAndReport(Opened)
 	return w
