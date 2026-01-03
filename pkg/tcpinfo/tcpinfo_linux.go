@@ -141,7 +141,7 @@ type SysInfo struct {
 	RTT                    time.Duration    `tcpi:"name=rtt,prom_type=gauge,prom_help='Smoothed Round Trip Time (RTT). The Linux implementation differs from the standard.'" json:"rtt,omitempty"`
 	RTTVar                 time.Duration    `tcpi:"name=rttvar,prom_type=gauge,prom_help='RTT variance. The Linux implementation differs from the standard.'" json:"rttVar,omitempty"`
 	TxSSThreshold          uint32           `tcpi:"name=snd_ssthresh,prom_type=gauge,prom_help='Slow Start Threshold. Value controlled by the selected congestion control algorithm.'" json:"txSSThreshold,omitempty"`
-	TxCongestionWindow     uint32           `tcpi:"name=snd_cwnd,prom_type=gauge,prom_help='Congestion Window. Value controlled by the selected congestion control algorithm.'" json:"txCongestionWindow,omitempty"`
+	TxCWindow              uint32           `tcpi:"name=snd_cwnd,prom_type=gauge,prom_help='Congestion Window. Value controlled by the selected congestion control algorithm.'" json:"txCWindow,omitempty"`
 	AdvMSS                 uint32           `tcpi:"name=advmss,prom_type=gauge,prom_help='Advertised maximum segment size.'" json:"advMSS,omitempty"`
 	Reordering             uint32           `tcpi:"name=reordering,prom_type=gauge,prom_help='Maximum observed reordering distance.'" json:"reordering,omitempty"`
 	RxRTT                  time.Duration    `tcpi:"name=rcv_rtt,prom_type=gauge,prom_help='Receiver Side RTT estimate.'" json:"rxRTT,omitempty"`
@@ -222,7 +222,7 @@ func (packed *RawInfo) Unpack() *SysInfo {
 	unpacked.RTT = time.Duration(packed.rtt) * time.Millisecond
 	unpacked.RTTVar = time.Duration(packed.rttvar) * time.Millisecond
 	unpacked.TxSSThreshold = packed.snd_ssthresh
-	unpacked.TxCongestionWindow = packed.snd_cwnd
+	unpacked.TxCWindow = packed.snd_cwnd
 	unpacked.AdvMSS = packed.advmss
 	unpacked.Reordering = packed.reordering
 	unpacked.RxRTT = time.Duration(packed.rcv_rtt) * time.Millisecond
@@ -375,7 +375,7 @@ func (s *SysInfo) ToInfo() *Info {
 		RxWindow:      uint64(s.RxSpace),
 		TxSSThreshold: uint64(s.TxSSThreshold),
 		RxSSThreshold: uint64(s.RxSSThreshold),
-		TxWindowSegs:  uint64(s.TxCongestionWindow),
+		TxWindowSegs:  uint64(s.TxCWindow),
 		Sys:           s,
 	}
 

@@ -104,7 +104,7 @@ type SysInfo struct {
 	RTO                 uint64   `tcpi:"name=rto,prom_type=gauge,prom_help='Retransmit timeout in nanoseconds.'" json:"rto,omitempty"`
 	MaxSeg              uint32   `tcpi:"name=max_seg,prom_type=gauge,prom_help='Maximum segment size supported in bytes.'" json:"mss,omitempty"`
 	TxSSThreshold       uint32   `tcpi:"name=send_ssthresh,prom_type=gauge,prom_help='Slow start threshold in bytes.'" json:"txSSThreshold,omitempty"`
-	TxCongestionWindow  uint32   `tcpi:"name=send_cwnd,prom_type=gauge,prom_help='Send congestion window in bytes.'" json:"txCongestionWindowBytes,omitempty"`
+	TxCWindow           uint32   `tcpi:"name=send_cwnd,prom_type=gauge,prom_help='Send congestion window in bytes.'" json:"txCWindowBytes,omitempty"`
 	TxWindow            uint32   `tcpi:"name=send_wnd,prom_type=gauge,prom_help='Send window in bytes.'" json:"txWindow,omitempty"`
 	TxSendBufferBytes   uint32   `tcpi:"name=send_sbbytes,prom_type=gauge,prom_help='Bytes in send socket buffer, including in-flight data.'" json:"txSendBufferBytes,omitempty"`
 	RxWindow            uint32   `tcpi:"name=recv_wnd,prom_type=gauge,prom_help='Receive window in bytes.'" json:"rxWindow,omitempty"`
@@ -132,7 +132,7 @@ func (packed *RawInfo) Unpack() *SysInfo {
 	unpacked.RTO = uint64(packed.RTO) * 1_000_000 // Convert ms to ns
 	unpacked.MaxSeg = packed.MaxSeg
 	unpacked.TxSSThreshold = packed.SendSSThresh
-	unpacked.TxCongestionWindow = packed.SendCwnd
+	unpacked.TxCWindow = packed.SendCwnd
 	unpacked.TxWindow = packed.SendWnd
 	unpacked.TxSendBufferBytes = packed.SendSBBytes
 	unpacked.RxWindow = packed.RecvWnd
@@ -178,7 +178,7 @@ func (s *SysInfo) ToInfo() *Info {
 		RTO:           time.Duration(s.RTO),
 		RxWindow:      uint64(s.RxWindow),
 		TxSSThreshold: uint64(s.TxSSThreshold),
-		TxWindowBytes: uint64(s.TxCongestionWindow),
+		TxWindowBytes: uint64(s.TxCWindow),
 		TxWindowSegs:  uint64(s.TxWindow),
 		Sys:           s,
 	}
