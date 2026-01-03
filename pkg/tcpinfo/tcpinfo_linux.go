@@ -6,6 +6,7 @@ package tcpinfo
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -513,4 +514,27 @@ func GetTCPInfo(fd int) (*SysInfo, error) {
 
 func Supported() bool {
 	return kernelVersionIsAtLeast_2_6_2
+}
+
+func (s *SysInfo) Warnings() []string {
+	var warns []string
+	if s.BytesRetrans.Valid && s.BytesRetrans.Value > 0 {
+		warns = append(warns, "retransBytes="+strconv.FormatUint(s.BytesRetrans.Value, 10))
+	}
+	if s.TotalRetrans > 0 {
+		warns = append(warns, "retransTotal="+strconv.FormatUint(uint64(s.TotalRetrans), 10))
+	}
+	if s.Backoff > 0 {
+		warns = append(warns, "backoff="+strconv.FormatUint(uint64(s.Backoff), 10))
+	}
+	if s.RxOutOfOrder.Valid && s.RxOutOfOrder.Value > 0 {
+		warns = append(warns, "outOfOrderBytes="+strconv.FormatUint(uint64(s.RxOutOfOrder.Value), 10))
+	}
+	if s.TxBufferLimited.Valid && s.TxBufferLimited.Value > 0 {
+		warns = append(warns, "txSendBufferLimited="+strconv.FormatUint(s.TxBufferLimited.Value, 10))
+	}
+	if s.RxWindowLimited.Valid && s.RxWindowLimited.Value > 0 {
+		warns = append(warns, "rxWindowLimited="+strconv.FormatUint(s.RxWindowLimited.Value, 10))
+	}
+	return warns
 }

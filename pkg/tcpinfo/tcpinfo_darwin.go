@@ -5,6 +5,7 @@ package tcpinfo
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -328,4 +329,21 @@ func GetTCPInfo(fd int) (*SysInfo, error) {
 
 func Supported() bool {
 	return true
+}
+
+func (s *SysInfo) Warnings() []string {
+	var warns []string
+	if s.TxRetransmitBytes > 0 {
+		warns = append(warns, "retransmitBytes="+strconv.FormatUint(s.TxRetransmitBytes, 10))
+	}
+	if s.TxRetransmitPackets > 0 {
+		warns = append(warns, "retransmitPackets="+strconv.FormatUint(s.TxRetransmitPackets, 10))
+	}
+	if s.RxOutOfOrderBytes > 0 {
+		warns = append(warns, "outOfOrderBytes="+strconv.FormatUint(s.RxOutOfOrderBytes, 10))
+	}
+	if s.TxSendBufferBytes > 0 {
+		warns = append(warns, "sendBufferBytes="+strconv.FormatUint(uint64(s.TxSendBufferBytes), 10))
+	}
+	return warns
 }

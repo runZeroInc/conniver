@@ -3,6 +3,7 @@ package conniver
 import (
 	"context"
 	"net"
+	"strconv"
 	"time"
 
 	"github.com/runZeroInc/conniver/pkg/tcpinfo"
@@ -166,4 +167,21 @@ func (w *Conn) Write(b []byte) (int, error) {
 		w.TxErr = err
 	}
 	return n, err
+}
+
+func (w *Conn) Warnings() []string {
+	var warns []string
+	if w.Reconnects > 0 {
+		warns = append(warns, "reconnects="+strconv.FormatInt(int64(w.Reconnects), 10))
+	}
+	for _, info := range []*tcpinfo.Info{w.OpenedInfo, w.ClosedInfo} {
+		if info == nil {
+			continue
+		}
+		if info.Retransmits > 0 {
+			warns = append(warns, "retransmits="+strconv.FormatInt(int64(info.Retransmits), 10))
+		}
+		warns = append(warns, info.Sys.Warnings()...)
+	}
+	return warns
 }
