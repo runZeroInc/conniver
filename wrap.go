@@ -103,7 +103,7 @@ func (w *Conn) gatherAndReport(state int) {
 
 	var sysInfo *tcpinfo.SysInfo
 	if err := rawConn.Control(func(fd uintptr) {
-		sysInfo, err = tcpinfo.GetTCPInfo(int(fd))
+		sysInfo, err = tcpinfo.GetTCPInfo(fd)
 	}); err != nil {
 		w.InfoErr = err
 		return

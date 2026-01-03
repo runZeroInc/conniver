@@ -296,7 +296,8 @@ var (
 )
 
 // GetTCPInfo calls getsockopt(2) on Linux to retrieve tcp_info and unpacks that into the golang-friendly TCPInfo.
-func GetTCPInfo(fd int) (*SysInfo, error) {
+func GetTCPInfo(fds uintptr) (*SysInfo, error) {
+	fd := int(fds)
 	var value RawInfo
 	length := uint32(unsafe.Sizeof(value))
 	var errno syscall.Errno
@@ -341,9 +342,6 @@ func (s *SysInfo) Warnings() []string {
 	}
 	if s.RxOutOfOrderBytes > 0 {
 		warns = append(warns, "outOfOrderBytes="+strconv.FormatUint(s.RxOutOfOrderBytes, 10))
-	}
-	if s.TxSendBufferBytes > 0 {
-		warns = append(warns, "sendBufferBytes="+strconv.FormatUint(uint64(s.TxSendBufferBytes), 10))
 	}
 	return warns
 }

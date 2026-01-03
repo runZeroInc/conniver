@@ -1,5 +1,5 @@
-//go:build !linux && !darwin && !freebsd && !openbsd && !netbsd && !dragonfly
-// +build !linux,!darwin,!freebsd,!openbsd,!netbsd,!dragonfly
+//go:build !linux && !darwin && !freebsd && !openbsd && !netbsd && !dragonfly && !aix
+// +build !linux,!darwin,!freebsd,!openbsd,!netbsd,!dragonfly,!aix
 
 package kernel
 

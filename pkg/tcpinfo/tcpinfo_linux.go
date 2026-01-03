@@ -480,7 +480,8 @@ var (
 var ErrKernelTooOld = errors.New("tcp_info is not available on Linux prior to kernel 2.6.2")
 
 // GetTCPInfo calls getsockopt(2) on Linux to retrieve tcp_info and unpacks that into the golang-friendly TCPInfo.
-func GetTCPInfo(fd int) (*SysInfo, error) {
+func GetTCPInfo(fds uintptr) (*SysInfo, error) {
+	fd := int(fds)
 	if !kernelVersionIsAtLeast_2_6_2 {
 		return nil, ErrKernelTooOld
 	}

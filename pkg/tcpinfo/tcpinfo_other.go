@@ -20,7 +20,7 @@ func (s *SysInfo) Warnings() []string {
 	return nil
 }
 
-func GetTCPInfo(fd int) (*SysInfo, error) {
+func GetTCPInfo(fd uintptr) (*SysInfo, error) {
 	return nil, fmt.Errorf("%s is unsupported", runtime.GOOS)
 }
 

@@ -1,5 +1,4 @@
 //go:build linux || freebsd || openbsd || darwin || netbsd || dragonfly
-// +build linux freebsd openbsd darwin netbsd dragonfly
 
 package kernel
 

@@ -1,4 +1,4 @@
-//go:build !windows
+//go:build linux || freebsd || openbsd || darwin || netbsd || dragonfly
 
 // Package kernel provides helper function to get, parse and compare kernel
 // versions for different platforms.
