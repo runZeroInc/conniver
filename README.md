@@ -121,8 +121,9 @@ func(c *conniver.Conn, state int) {
 })
 ```
 
-```json
+```bash
 $ go run main.go
+
 Connection 192.168.10.23:60032 -> 216.239.36.21:443 took 273.869ms, sent:1725/recv:5897 bytes, starting RTT 6ms(3ms) and ending RTT 6ms(1ms)
 
 {"openedAt":1767404790007006000,"closedAt":1767404790280875000,"firstReadAt":1767404790023466000,"firstWriteAt":1767404790007418000,"sentBytes":1725,"recvBytes":5897,"openedInfo":{"state":"ESTABLISHED","options":["Timestamps","SACK","WindowScale:08"],"peerOptions":["Timestamps","SACK","WindowScale:06"],"sendMSS":1400,"recvMSS":1400,"rtt":6000000,"rttVar":3000000,"recvWindow":131648,"sendSSThreshold":1073725440,"sendCWindowdBytes":14000,"sendCWindowSegs":65535,"sysInfo":{"state":"ESTABLISHED","sendWScale":8,"recvWScale":6,"options":["Timestamps","SACK","WindowScale:08"],"peerOptions":["Timestamps","SACK","WindowScale:06"],"mss":1400,"sendSSThreshold":1073725440,"sendCWindowBytes":14000,"sendWnd":65535,"recvWnd":131648,"rttCur":6000000,"rttSmoothed":6000000,"rttVar":3000000}},"closedInfo":{"state":"ESTABLISHED","options":["Timestamps","SACK","WindowScale:08"],"peerOptions":["Timestamps","SACK","WindowScale:06"],"sendMSS":1400,"recvMSS":1400,"rtt":6000000,"rttVar":1000000,"rto":230000000,"recvWindow":125504,"sendSSThreshold":1073725440,"sendCWindowdBytes":15701,"sendCWindowSegs":267520,"sysInfo":{"state":"ESTABLISHED","sendWScale":8,"recvWScale":6,"options":["Timestamps","SACK","WindowScale:08"],"peerOptions":["Timestamps","SACK","WindowScale:06"],"rto":230000000,"mss":1400,"sendSSThreshold":1073725440,"sendCWindowBytes":15701,"sendWnd":267520,"sendSBBytes":24,"recvWnd":125504,"rttCur":252000000,"rttSmoothed":6000000,"rttVar":1000000,"txPackets":5,"txBytes":1725,"rxPackets":3,"rxBytes":11497}}}
