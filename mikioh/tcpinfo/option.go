@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/runZeroInc/sockstats/tcpopt"
+	"github.com/runZeroInc/conniver/tcpopt"
 )
 
 var (

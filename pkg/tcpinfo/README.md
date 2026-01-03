@@ -63,7 +63,7 @@ package main
 import (
 	"fmt"
 	"github.com/higebu/netfd"
-	"github.com/runZeroInc/sockstats/pkg/tcpinfo"
+	"github.com/runZeroInc/conniver/pkg/tcpinfo"
 	"net"
 )
 
@@ -100,5 +100,5 @@ MinRTT: 20928
 To use this module in your project, install it with `go get`:
 
 ```bash
-go get github.com/runZeroInc/sockstats
+go get github.com/runZeroInc/conniver
 ```

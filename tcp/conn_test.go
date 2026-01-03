@@ -8,7 +8,7 @@ import (
 	"net"
 	"testing"
 
-	"github.com/runZeroInc/sockstats/tcp"
+	"github.com/runZeroInc/conniver/tcp"
 	"golang.org/x/net/nettest"
 )
 

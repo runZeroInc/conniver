@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/runZeroInc/sockstats/tcp"
-	"github.com/runZeroInc/sockstats/tcpopt"
+	"github.com/runZeroInc/conniver/tcp"
+	"github.com/runZeroInc/conniver/tcpopt"
 )
 
 func TestBuffered(t *testing.T) {

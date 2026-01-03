@@ -13,7 +13,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/runZeroInc/sockstats/pkg/kernel"
+	"github.com/runZeroInc/conniver/pkg/kernel"
 )
 
 const (

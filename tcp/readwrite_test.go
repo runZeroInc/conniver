@@ -13,8 +13,8 @@ import (
 	"sync"
 	"testing"
 
-	tcpinfo "github.com/runZeroInc/sockstats/mikioh/tcpinfo"
-	"github.com/runZeroInc/sockstats/tcp"
+	tcpinfo "github.com/runZeroInc/conniver/mikioh/tcpinfo"
+	"github.com/runZeroInc/conniver/tcp"
 )
 
 func server(t *testing.T, ln net.Listener) {

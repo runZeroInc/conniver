@@ -11,7 +11,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/runZeroInc/sockstats/tcp"
+	"github.com/runZeroInc/conniver/tcp"
 )
 
 func TestOptionWithVariousBufferLengths(t *testing.T) {

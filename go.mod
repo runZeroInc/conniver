@@ -1,4 +1,4 @@
-module github.com/runZeroInc/sockstats
+module github.com/runZeroInc/conniver
 
 go 1.25
 

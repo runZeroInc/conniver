@@ -12,9 +12,9 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/runZeroInc/sockstats/mikioh/tcpinfo"
-	"github.com/runZeroInc/sockstats/tcp"
-	"github.com/runZeroInc/sockstats/tcpopt"
+	"github.com/runZeroInc/conniver/mikioh/tcpinfo"
+	"github.com/runZeroInc/conniver/tcp"
+	"github.com/runZeroInc/conniver/tcpopt"
 )
 
 // Monitoring a TCP connection

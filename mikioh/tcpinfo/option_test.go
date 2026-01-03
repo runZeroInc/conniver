@@ -8,8 +8,8 @@ import (
 	"runtime"
 	"testing"
 
-	tcpinfo "github.com/runZeroInc/sockstats/mikioh/tcpinfo"
-	"github.com/runZeroInc/sockstats/tcpopt"
+	tcpinfo "github.com/runZeroInc/conniver/mikioh/tcpinfo"
+	"github.com/runZeroInc/conniver/tcpopt"
 )
 
 func TestMarshalAndParse(t *testing.T) {

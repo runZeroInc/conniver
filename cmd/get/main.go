@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/runZeroInc/sockstats"
+	"github.com/runZeroInc/conniver"
 	"github.com/sirupsen/logrus"
 )
 
@@ -25,13 +25,13 @@ type HTTPClientWithSockStats struct {
 	Client           *http.Client
 	Timeout          time.Duration
 	ControlContextFn func(ctx context.Context, network, address string, conn syscall.RawConn) error
-	ReportFn         sockstats.ReportStatsFn
+	ReportFn         conniver.ReportStatsFn
 }
 
 func NewHTTPClientWithSockStats(
 	timeout time.Duration,
 	ctrl func(ctx context.Context, network, address string, conn syscall.RawConn) error,
-	report sockstats.ReportStatsFn,
+	report conniver.ReportStatsFn,
 ) *HTTPClientWithSockStats {
 	s := &HTTPClientWithSockStats{
 		Timeout:          timeout,
@@ -68,10 +68,48 @@ func (s *HTTPClientWithSockStats) wrapDialContext(conn net.Conn, err error) (net
 	if err != nil {
 		return nil, err
 	}
-	return sockstats.WrapConn(conn, s.ReportFn), nil
+	return conniver.WrapConn(conn, s.ReportFn), nil
 }
 
 func main() {
+	timeout := 15 * time.Second
+	d := net.Dialer{Timeout: timeout}
+	cl := &http.Client{Transport: &http.Transport{
+		TLSHandshakeTimeout: timeout,
+		// Set DisableKeepAlives to true to force connection close after each request.
+		// Alternatively, we can call client.CloseIdleConnections() manually.
+		// DisableKeepAlives:     true,
+		DialContext: func(ctx context.Context, network string, addr string) (net.Conn, error) {
+			conn, err := d.DialContext(ctx, network, addr)
+			if err != nil {
+				return nil, err
+			}
+			return conniver.WrapConn(conn, func(c *conniver.Conn, state int) {
+				if state != conniver.Closed {
+					return
+				}
+				fmt.Printf("Connection %s -> %s took %s, sent:%d/recv:%d bytes, starting RTT %s(%s) and ending RTT %s(%s)\n",
+					c.LocalAddr().String(), c.RemoteAddr().String(),
+					time.Duration(c.ClosedAt-c.OpenedAt),
+					c.SentBytes, c.RecvBytes,
+					c.OpenedInfo.RTT, c.OpenedInfo.RTTVar,
+					c.ClosedInfo.RTT, c.ClosedInfo.RTTVar,
+				)
+			}), err
+		},
+	}}
+	resp, err := cl.Get("https://www.golang.org/")
+	if err != nil {
+		logrus.Fatalf("get: %v", err)
+	}
+	_ = resp.Body.Close()
+
+	// Use client.CloseIdleConnections() to trigger the closed events for all wrapped connections.
+	// Alteratively use `DisableKeepAlives: true`` in the HTTP transport.
+	cl.CloseIdleConnections()
+
+	return
+
 	// TODO: Also implement HTTP clien tracing on top of the tcpinfo metrics.
 	// https://pkg.go.dev/net/http/httptrace#ClientTrace
 	ss := NewHTTPClientWithSockStats(15*time.Second, controlSocket, reportStats)
@@ -80,7 +118,7 @@ func main() {
 	if len(os.Args) > 1 {
 		t = os.Args[1]
 	}
-	resp, err := ss.Client.Get(t)
+	resp, err = ss.Client.Get(t)
 	if err != nil {
 		logrus.Fatalf("get: %v", err)
 	}
@@ -107,13 +145,13 @@ func controlSocket(ctx context.Context, network, address string, conn syscall.Ra
 	return controlErr
 }
 
-func reportStats(tic *sockstats.Conn, state int) {
+func reportStats(tic *conniver.Conn, state int) {
 	r, err := json.Marshal(tic)
 	if err != nil {
 		logrus.Errorf("marshal tcpinfo: %v", err)
 		return
 	}
-	if state == sockstats.Closed {
-		fmt.Printf("[%s]\n%s\n\n", sockstats.StateMap[state], string(r))
+	if state == conniver.Closed {
+		fmt.Printf("[%s]\n%s\n\n", conniver.StateMap[state], string(r))
 	}
 }

@@ -1,10 +1,10 @@
-package sockstats
+package conniver
 
 import (
 	"net"
 	"time"
 
-	"github.com/runZeroInc/sockstats/pkg/tcpinfo"
+	"github.com/runZeroInc/conniver/pkg/tcpinfo"
 )
 
 const (

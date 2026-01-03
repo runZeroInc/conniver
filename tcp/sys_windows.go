@@ -12,7 +12,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/runZeroInc/sockstats/tcpopt"
+	"github.com/runZeroInc/conniver/tcpopt"
 )
 
 var options [soMax]option

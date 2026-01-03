@@ -11,7 +11,7 @@
 package tcpinfo
 
 import (
-	"github.com/runZeroInc/sockstats/pkg/kernel"
+	"github.com/runZeroInc/conniver/pkg/kernel"
 )
 
 var (

@@ -3,7 +3,7 @@ package os
 import (
 	"errors"
 
-	"github.com/runZeroInc/sockstats/pkg/osversion"
+	"github.com/runZeroInc/conniver/pkg/osversion"
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
 )

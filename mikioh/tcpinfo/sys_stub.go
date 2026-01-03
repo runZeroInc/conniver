@@ -10,7 +10,7 @@ package tcpinfo
 import (
 	"errors"
 
-	"github.com/runZeroInc/sockstats/tcpopt"
+	"github.com/runZeroInc/conniver/tcpopt"
 )
 
 var options [soMax]option
