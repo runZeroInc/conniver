@@ -173,8 +173,11 @@ type SysInfo struct {
 	Rehash                 NullableUint32   `tcpi:"name=rehash,prom_type=gauge,prom_help='PLB or timeout triggered rehash attempts.'" json:"rehash,omitempty"`
 	TotalRTO               NullableUint16   `tcpi:"name=total_rto,prom_type=counter,prom_help='Total number of RTO timeouts, including SYN/SYN-ACK and recurring timeouts.'" json:"totalRTO,omitempty"`
 	TotalRTORecoveries     NullableUint16   `tcpi:"name=total_rto_recoveries,prom_type=counter,prom_help='Total number of RTO recoveries, including any unfinished recovery.'" json:"totalRTORecoveries,omitempty"`
-	TotalRTOTime           NullableUint32   `tcpi:"name=total_rto_time,prom_type=counter,prom_help='Total time spent in RTO recoveries in milliseconds, including any unfinished recovery.'" json:"totalRTOTime,omitempty"`
+	TotalRTOTime           NullableUint32   `tcpi:"name=total_rto_time,prom_type=counter,prom_help='Total time spent in RTO recoveries in nanoseconds, including any unfinished recovery.'" json:"totalRTOTime,omitempty"`
 }
+
+// timeFieldMultiplier is used to convert fields representing time in microseconds to time.Duration (nanoseconds).
+var timeFieldMultiplier = time.Microsecond
 
 // Unpack copies fields from RawTCPInfo to TCPInfo, taking care of the bitfields and marking fields not provided
 // by older kernel versions as null. In the future it may deal with varying lengths of the struct returned by the
@@ -204,8 +207,8 @@ func (packed *RawInfo) Unpack() *SysInfo {
 		unpacked.FastOpenClientFail.Value = (packed.bitfield1 >> 1) & 0x3
 	}
 
-	unpacked.RTO = time.Duration(packed.rto) * time.Millisecond
-	unpacked.ATO = time.Duration(packed.ato) * time.Millisecond
+	unpacked.RTO = time.Duration(packed.rto) * timeFieldMultiplier
+	unpacked.ATO = time.Duration(packed.ato) * timeFieldMultiplier
 	unpacked.TxMSS = packed.snd_mss
 	unpacked.RxMSS = packed.rcv_mss
 	unpacked.UnAcked = packed.unacked
@@ -213,19 +216,19 @@ func (packed *RawInfo) Unpack() *SysInfo {
 	unpacked.Lost = packed.lost
 	unpacked.Retrans = packed.retrans
 	unpacked.Fackets = packed.fackets
-	unpacked.LastTxAt = time.Duration(packed.last_data_sent) * time.Millisecond
-	unpacked.LastTxAckAt = time.Duration(packed.last_ack_sent) * time.Millisecond
-	unpacked.LastRxAt = time.Duration(packed.last_data_recv) * time.Millisecond
-	unpacked.LastRxAckAt = time.Duration(packed.last_ack_recv) * time.Millisecond
+	unpacked.LastTxAt = time.Duration(packed.last_data_sent) * timeFieldMultiplier
+	unpacked.LastTxAckAt = time.Duration(packed.last_ack_sent) * timeFieldMultiplier
+	unpacked.LastRxAt = time.Duration(packed.last_data_recv) * timeFieldMultiplier
+	unpacked.LastRxAckAt = time.Duration(packed.last_ack_recv) * timeFieldMultiplier
 	unpacked.PMTU = packed.pmtu
 	unpacked.RxSSThreshold = packed.rcv_ssthresh
-	unpacked.RTT = time.Duration(packed.rtt) * time.Millisecond
-	unpacked.RTTVar = time.Duration(packed.rttvar) * time.Millisecond
+	unpacked.RTT = time.Duration(packed.rtt) * timeFieldMultiplier
+	unpacked.RTTVar = time.Duration(packed.rttvar) * timeFieldMultiplier
 	unpacked.TxSSThreshold = packed.snd_ssthresh
 	unpacked.TxCWindow = packed.snd_cwnd
 	unpacked.AdvMSS = packed.advmss
 	unpacked.Reordering = packed.reordering
-	unpacked.RxRTT = time.Duration(packed.rcv_rtt) * time.Millisecond
+	unpacked.RxRTT = time.Duration(packed.rcv_rtt) * timeFieldMultiplier
 	unpacked.RxSpace = packed.rcv_space
 	unpacked.TotalRetrans = packed.total_retrans
 	unpacked.PacingRate = NullableUint64{Valid: false}
@@ -263,7 +266,7 @@ func (packed *RawInfo) Unpack() *SysInfo {
 		unpacked.NotSentBytes.Valid = true
 		unpacked.NotSentBytes.Value = packed.notsent_bytes
 		unpacked.MinRTT.Valid = true
-		unpacked.MinRTT.Value = time.Duration(packed.min_rtt) * time.Millisecond
+		unpacked.MinRTT.Value = time.Duration(packed.min_rtt) * timeFieldMultiplier
 		unpacked.DataSegsIn.Valid = true
 		unpacked.DataSegsIn.Value = packed.data_segs_in
 		unpacked.DataSegsOut.Valid = true
