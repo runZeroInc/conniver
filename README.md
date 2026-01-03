@@ -109,20 +109,28 @@ func(c *conniver.Conn, state int) {
     if state != conniver.Closed {
         return
     }
-	fmt.Printf("Connection %s -> %s took %s, sent:%d/recv:%d bytes, starting RTT %s(%s) and ending RTT %s(%s)\n",
+    raw, _ := json.Marshal(c)
+	fmt.Printf("Connection %s -> %s took %s, sent:%d/recv:%d bytes, starting RTT %s(%s) and ending RTT %s(%s)\n%s\n\n",
         c.LocalAddr().String(), c.RemoteAddr().String(),
         time.Duration(c.ClosedAt-c.OpenedAt),
         c.SentBytes, c.RecvBytes,
         c.OpenedInfo.RTT, c.OpenedInfo.RTTVar,
         c.ClosedInfo.RTT, c.ClosedInfo.RTTVar,
+        string(raw),
     )
 })
 ```
 
-```bash
+```json
 $ go run main.go
-Connection 192.168.200.23:57708 -> 142.251.186.141:443 took 3.361455s, sent:1707/recv:11868 bytes, starting RTT 6ms(3ms) and ending RTT 6ms(1ms)
-Connection 192.168.200.23:57709 -> 216.239.32.21:443 took 171.249ms, sent:1725/recv:7327 bytes, starting RTT 7ms(3ms) and ending RTT 6ms(2ms)
+Connection 192.168.10.23:60032 -> 216.239.36.21:443 took 273.869ms, sent:1725/recv:5897 bytes, starting RTT 6ms(3ms) and ending RTT 6ms(1ms)
+
+{"openedAt":1767404790007006000,"closedAt":1767404790280875000,"firstReadAt":1767404790023466000,"firstWriteAt":1767404790007418000,"sentBytes":1725,"recvBytes":5897,"openedInfo":{"state":"ESTABLISHED","options":["Timestamps","SACK","WindowScale:08"],"peerOptions":["Timestamps","SACK","WindowScale:06"],"sendMSS":1400,"recvMSS":1400,"rtt":6000000,"rttVar":3000000,"recvWindow":131648,"sendSSThreshold":1073725440,"sendCWindowdBytes":14000,"sendCWindowSegs":65535,"sysInfo":{"state":"ESTABLISHED","sendWScale":8,"recvWScale":6,"options":["Timestamps","SACK","WindowScale:08"],"peerOptions":["Timestamps","SACK","WindowScale:06"],"mss":1400,"sendSSThreshold":1073725440,"sendCWindowBytes":14000,"sendWnd":65535,"recvWnd":131648,"rttCur":6000000,"rttSmoothed":6000000,"rttVar":3000000}},"closedInfo":{"state":"ESTABLISHED","options":["Timestamps","SACK","WindowScale:08"],"peerOptions":["Timestamps","SACK","WindowScale:06"],"sendMSS":1400,"recvMSS":1400,"rtt":6000000,"rttVar":1000000,"rto":230000000,"recvWindow":125504,"sendSSThreshold":1073725440,"sendCWindowdBytes":15701,"sendCWindowSegs":267520,"sysInfo":{"state":"ESTABLISHED","sendWScale":8,"recvWScale":6,"options":["Timestamps","SACK","WindowScale:08"],"peerOptions":["Timestamps","SACK","WindowScale:06"],"rto":230000000,"mss":1400,"sendSSThreshold":1073725440,"sendCWindowBytes":15701,"sendWnd":267520,"sendSBBytes":24,"recvWnd":125504,"rttCur":252000000,"rttSmoothed":6000000,"rttVar":1000000,"txPackets":5,"txBytes":1725,"rxPackets":3,"rxBytes":11497}}}
+
+Connection 192.168.10.23:60031 -> 142.251.116.141:443 took 329.892ms, sent:1707/recv:11868 bytes, starting RTT 6ms(3ms) and ending RTT 6ms(2ms)
+
+{"openedAt":1767404789950983000,"closedAt":1767404790280875000,"firstReadAt":1767404789958865000,"firstWriteAt":1767404789951608000,"sentBytes":1707,"recvBytes":11868,"openedInfo":{"state":"ESTABLISHED","options":["Timestamps","SACK","WindowScale:08"],"peerOptions":["Timestamps","SACK","WindowScale:06"],"sendMSS":1400,"recvMSS":1400,"rtt":6000000,"rttVar":3000000,"recvWindow":131648,"sendSSThreshold":1073725440,"sendCWindowdBytes":14000,"sendCWindowSegs":65535,"sysInfo":{"state":"ESTABLISHED","sendWScale":8,"recvWScale":6,"options":["Timestamps","SACK","WindowScale:08"],"peerOptions":["Timestamps","SACK","WindowScale:06"],"mss":1400,"sendSSThreshold":1073725440,"sendCWindowBytes":14000,"sendWnd":65535,"recvWnd":131648,"rttCur":6000000,"rttSmoothed":6000000,"rttVar":3000000}},"closedInfo":{"state":"ESTABLISHED","options":["Timestamps","SACK","WindowScale:08"],"peerOptions":["Timestamps","SACK","WindowScale:06"],"sendMSS":1400,"recvMSS":1400,"rtt":6000000,"rttVar":2000000,"rto":230000000,"recvWindow":131072,"sendSSThreshold":1073725440,"sendCWindowdBytes":15683,"sendCWindowSegs":267520,"sysInfo":{"state":"ESTABLISHED","sendWScale":8,"recvWScale":6,"options":["Timestamps","SACK","WindowScale:08"],"peerOptions":["Timestamps","SACK","WindowScale:06"],"rto":230000000,"mss":1400,"sendSSThreshold":1073725440,"sendCWindowBytes":15683,"sendWnd":267520,"sendSBBytes":24,"recvWnd":131072,"rttCur":28000000,"rttSmoothed":6000000,"rttVar":2000000,"txPackets":5,"txBytes":1707,"rxPackets":3,"rxBytes":11868}}}
+
 ```
 
 
