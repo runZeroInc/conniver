@@ -3,6 +3,13 @@
 This Go module provides an interface for obtaining `TCP_INFO` and similar data from sockets.
 It is particularly useful for monitoring and diagnosing TCP connection problems.
 
+This package as derived from Simeon Miteff's https://github.com/simeonmiteff/go-tcpinfo/ and
+is used under the Mozilla Public License Version 2.0.
+
+This README has been updated to recognize these additions:
+ - Support for Apple macOS
+ - Support for Microsoft Windows
+
 
 ## Linux Support
 
@@ -40,6 +47,8 @@ to reliably and easily distinguish between a metric that is truly zero and a met
 system, preventing subtle bugs and leading to more robust applications.
 
 ### Comparison to Alternatives
+- [github.com/simeonmiteff/go-tcpinfo](https://github.com/simeonmiteff/go-tcpinfo/): Provides extensive support
+for Linux kernel variations, but no support for macOS, FreeBSD, or Windows.
 - [golang.org/x/sys/unix](https://pkg.go.dev/golang.org/x/sys/unix#GetsockoptTCPInfo): Provides the low-level
 primitives but offers no versioning safety, leaving the developer to manage the complexity and risk.
 - [github.com/m-lab/tcp-info](https://github.com/m-lab/tcp-info): A powerful, actively maintained tool for system-wide
@@ -49,8 +58,7 @@ implicitly zero-values unsupported fields.
 now unmaintained and significantly out-of-date. It uses a less flexible compile-time versioning strategy and lacks
 support for most modern TCP features.
 
-This library is the modern, safe, and flexible choice for developers needing to perform per-socket `TCP_INFO` diagnostics
-in Go.
+This library is the modern, safe, and flexible choice for developers needing to perform per-socket `TCP_INFO` diagnostics in Go.
 
 ### Usage
 
@@ -61,10 +69,11 @@ that establishes a TCP connection, retrieves its `TCP_INFO`, and prints some of 
 package main
 
 import (
+	"encoding/json"
 	"fmt"
-	"github.com/higebu/netfd"
-	"github.com/runZeroInc/conniver/pkg/tcpinfo"
 	"net"
+
+	"github.com/runZeroInc/conniver/pkg/tcpinfo"
 )
 
 func main() {
@@ -74,25 +83,53 @@ func main() {
 	}
 	defer conn.Close()
 
-	fd := netfd.GetFdFromConn(conn)
+	sysConn, ok := conn.(*net.TCPConn)
+	if !ok {
+		panic("not a TCP connection")
+	}
+
+	// You can also use
+	fd, err := sysConn.File()
+	if err != nil {
+		panic(err)
+	}
+	defer fd.Close()
+
+	tcpInfo, err := tcpinfo.GetTCPInfo(fd.Fd())
 	if err != nil {
 		panic(err)
 	}
 
-	tcpInfo, err := tcpinfo.GetTCPInfo(fd)
-	if err != nil {
-		panic(err)
-	}
-
-	jb, _ := json.MarshalIndent(tcpInfo, "  ")
+	jb, _ := json.MarshalIndent(tcpInfo, "", "  ")
 	fmt.Printf("%s\n", string(jb))
 }
 ```
 
 Example output:
 ```
-RTT: 20928, RTTVar: 10464
-MinRTT: 20928
+{
+  "state": "ESTABLISHED",
+  "txWScale": 8,
+  "rxWScale": 6,
+  "txOptions": [
+    "Timestamps",
+    "SACK",
+    "WindowScale:08"
+  ],
+  "rxOptions": [
+    "Timestamps",
+    "SACK",
+    "WindowScale:06"
+  ],
+  "mss": 1400,
+  "txSSThreshold": 1073725440,
+  "txCWindowBytes": 14000,
+  "txWindow": 65535,
+  "rxWindow": 131648,
+  "rttCur": 7000000,
+  "rttSmoothed": 7000000,
+  "rttVar": 3000000
+}
 ```
 
 ### Installation
@@ -100,5 +137,5 @@ MinRTT: 20928
 To use this module in your project, install it with `go get`:
 
 ```bash
-go get github.com/runZeroInc/conniver
+go get github.com/runZeroInc/conniver/pkg/tcpinfo
 ```
