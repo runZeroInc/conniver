@@ -8,6 +8,10 @@ statistics for the connection, including round-trip-time, max segment size, and 
 
 Conniver is best used by specifying a DialContext with a TCP or HTTP.
 
+If you aren't able to wrap the `net.Conn`, you can instead call `tcpinfo.TCPInfo()`
+directly instead. You can find the documentation for this in the package 
+[README](https://github.com/runZeroInc/conniver/blob/main/pkg/tcpinfo/README.md).
+
 The following code demonstrates using conniver to collect connection data
 from the `net/http.Client`. The wrapped `net.Conn` should work with most Go
 packages that allow custom dialers or provide some way to provide a
