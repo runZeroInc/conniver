@@ -5,6 +5,8 @@ This is a light update to Dave Cheney's [httpstat](https://github.com/davecheney
 This version uses [conniver](https://github.com/runZeroInc/conniver) to collect socket statistics from the operating system. 
 
 
+![Screenshot](./screenshot.png)
+
 ## Installation
 `httpstat` requires Go 1.25 or later.
 ```
