@@ -20,34 +20,19 @@ func main() {
 		panic("not a TCP connection")
 	}
 
-	fd, err := sysConn.File()
+	rawConn, err := sysConn.SyscallConn()
 	if err != nil {
-		panic(err)
-	}
-	defer fd.Close()
-
-	/*
-		// An alternative using SyscallConn.Control()
-		rawConn, err := conn.SyscallConn()
-		if err != nil {
-			return
-		}
-
-		var sysInfo *tcpinfo.SysInfo
-		if err := rawConn.Control(func(fd uintptr) {
-			// Pass the `fd` to GetTCPInfo here
-			sysInfo, err = tcpinfo.GetTCPInfo(fd)
-		}); err != nil {
-			w.InfoErr = err
-			return
-		}
-	*/
-
-	tcpInfo, err := tcpinfo.GetTCPInfo(fd.Fd())
-	if err != nil {
-		panic(err)
+		return
 	}
 
-	jb, _ := json.MarshalIndent(tcpInfo, "", "  ")
+	var sysInfo *tcpinfo.SysInfo
+	if err := rawConn.Control(func(fd uintptr) {
+		// Pass the `fd` to GetTCPInfo here
+		sysInfo, err = tcpinfo.GetTCPInfo(fd)
+	}); err != nil {
+		return
+	}
+
+	jb, _ := json.MarshalIndent(sysInfo, "", "  ")
 	fmt.Printf("%s\n", string(jb))
 }
