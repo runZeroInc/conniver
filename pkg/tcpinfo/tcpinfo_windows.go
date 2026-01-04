@@ -40,7 +40,7 @@ type RawInfoV0 struct {
 	SynRetrans        uint8
 }
 
-// RawInfoV0 mirrors the _TCP_INFO_v0 structure from the Windows SDK
+// RawInfoV1 mirrors the _TCP_INFO_v1 structure from the Windows SDK
 // https://learn.microsoft.com/en-us/windows/win32/api/mstcpip/ns-mstcpip-tcp_info_v1
 type RawInfoV1 struct {
 	State             uint32
