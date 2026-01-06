@@ -3,6 +3,7 @@
 package tcpinfo
 
 import (
+	"encoding/json"
 	"fmt"
 	"runtime"
 )
@@ -21,6 +22,10 @@ func (s *SysInfo) Warnings() []string {
 
 func (s *SysInfo) ToMap() map[string]any {
 	return map[string]any{}
+}
+
+func (s *SysInfo) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.ToMap())
 }
 
 func GetTCPInfo(fd uintptr) (*SysInfo, error) {

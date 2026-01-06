@@ -4,6 +4,7 @@
 package tcpinfo
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -149,6 +150,10 @@ func (s *SysInfo) ToMap() map[string]any {
 		"rxOutOfOrderBytes":   s.RxOutOfOrderBytes,
 		"txRetransmitPackets": s.TxRetransmitPackets,
 	}
+}
+
+func (s *SysInfo) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.ToMap())
 }
 
 // timeFieldMultiplier is used to convert fields representing time in milliseconds to time.Duration (nanoseconds).

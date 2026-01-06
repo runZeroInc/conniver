@@ -3,6 +3,7 @@
 package tcpinfo
 
 import (
+	"encoding/json"
 	"errors"
 	"strconv"
 	"syscall"
@@ -360,6 +361,10 @@ func (s *SysInfo) ToMap() map[string]any {
 		r["ccDCTCPABTOT"] = s.CCDCTCPABTOT.Value
 	}
 	return r
+}
+
+func (s *SysInfo) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.ToMap())
 }
 
 // timeFieldMultiplier is used to convert fields representing time in microseconds to time.Duration (nanoseconds).
