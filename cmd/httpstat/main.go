@@ -412,7 +412,7 @@ func visit(url *url.URL) {
 				printf("%s:\t%s\n", grayscale(14)("Warnings"), color.RedString("%s", strings.Join(warns, ", ")))
 			}
 			jb, _ := json.MarshalIndent(c.ToMap(), "", "  ")
-			printf("%s\n%s", grayscale(14)("Diagnostics\n==========\n"), color.WhiteString("%s", string(jb)))
+			printf("%s\n%s", grayscale(14)("Diagnostics:\n============\n"), color.WhiteString("%s\n", string(jb)))
 		}
 	}
 

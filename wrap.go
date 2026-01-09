@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/runZeroInc/conniver/pkg/tcpinfo"
@@ -41,6 +42,7 @@ type Conn struct {
 	OpenedInfo      *tcpinfo.Info    `json:"openedInfo,omitempty"`
 	ClosedInfo      *tcpinfo.Info    `json:"closedInfo,omitempty"`
 	supportsTCPInfo bool
+	sync.Mutex
 }
 
 // WrapConn wraps the given net.Conn, triggers an immediate report in Open state,
@@ -102,9 +104,14 @@ func (w *Conn) gatherAndReport(state int) {
 	}
 
 	var sysInfo *tcpinfo.SysInfo
-	if err := rawConn.Control(func(fd uintptr) {
+	err = rawConn.Control(func(fd uintptr) {
 		sysInfo, err = tcpinfo.GetTCPInfo(fd)
-	}); err != nil {
+	})
+
+	// Lock the struct to store the gathered info
+	w.Lock()
+	defer w.Unlock()
+	if err != nil {
 		w.InfoErr = err
 		return
 	}
@@ -120,12 +127,17 @@ func (w *Conn) gatherAndReport(state int) {
 // SetReconnects stores the number of additional connection attempts that were needed to open this connection.
 // This is managed externally by the caller, but reported in the final stats.
 func (w *Conn) SetReconnects(reconnects int) {
+	w.Lock()
+	defer w.Unlock()
 	w.Reconnects = reconnects
 }
 
 // Close invokes the reportWrapper with a close event before closing the connection.
 func (w *Conn) Close() error {
+	w.Lock()
 	w.ClosedAt = time.Now().UnixNano()
+	w.Unlock()
+	// The gatherAndReport function must not be called while holding the lock.
 	w.gatherAndReport(Closed)
 	return w.Conn.Close()
 }
@@ -133,6 +145,8 @@ func (w *Conn) Close() error {
 // Read wraps the underlying Read method and tracks the bytes received
 func (w *Conn) Read(b []byte) (int, error) {
 	n, err := w.Conn.Read(b)
+	w.Lock()
+	defer w.Unlock()
 	if err == nil && n > 0 {
 		ts := time.Now().UnixNano()
 		if w.FirstRxAt == 0 {
@@ -152,6 +166,8 @@ func (w *Conn) Read(b []byte) (int, error) {
 // Write wraps the underlying Write method and tracks the bytes sent
 func (w *Conn) Write(b []byte) (int, error) {
 	n, err := w.Conn.Write(b)
+	w.Lock()
+	defer w.Unlock()
 	if err == nil && n > 0 {
 		ts := time.Now().UnixNano()
 		if w.FirstTxAt == 0 {
@@ -170,6 +186,12 @@ func (w *Conn) Write(b []byte) (int, error) {
 }
 
 func (w *Conn) Warnings() []string {
+	w.Lock()
+	defer w.Unlock()
+	return w.warnings()
+}
+
+func (w *Conn) warnings() []string {
 	var warns []string
 	if w.Reconnects > 0 {
 		warns = append(warns, "reconnects="+strconv.FormatInt(int64(w.Reconnects), 10))
@@ -187,6 +209,8 @@ func (w *Conn) Warnings() []string {
 }
 
 func (w *Conn) ToMap() map[string]any {
+	w.Lock()
+	defer w.Unlock()
 	fset := map[string]any{
 		"openedAt":   w.OpenedAt,
 		"closedAt":   w.ClosedAt,
@@ -199,7 +223,7 @@ func (w *Conn) ToMap() map[string]any {
 		"reconnects": w.Reconnects,
 		"localAddr":  w.LocalAddr().String(),
 		"remoteAddr": w.RemoteAddr().String(),
-		"warnings":   w.GetWarnings(),
+		"warnings":   w.warnings(),
 	}
 	if w.RxErr != nil {
 		fset["rxErr"] = w.RxErr.Error()
@@ -220,21 +244,4 @@ func (w *Conn) ToMap() map[string]any {
 		fset["closedInfo"] = w.ClosedInfo.ToMap()
 	}
 	return fset
-}
-
-func (w *Conn) GetWarnings() []string {
-	var warns []string
-	if w.Reconnects > 0 {
-		warns = append(warns, "reconnects="+strconv.FormatInt(int64(w.Reconnects), 10))
-	}
-	for _, info := range []*tcpinfo.Info{w.OpenedInfo, w.ClosedInfo} {
-		if info == nil {
-			continue
-		}
-		if info.Retransmits > 0 {
-			warns = append(warns, "retransmits="+strconv.FormatInt(int64(info.Retransmits), 10))
-		}
-		warns = append(warns, info.Sys.Warnings()...)
-	}
-	return warns
 }
