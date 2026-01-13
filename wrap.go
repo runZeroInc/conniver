@@ -104,15 +104,26 @@ func (w *Conn) gatherAndReport(state int) {
 	}
 
 	var sysInfo *tcpinfo.SysInfo
+	var tcpErr error
 	err = rawConn.Control(func(fd uintptr) {
-		sysInfo, err = tcpinfo.GetTCPInfo(fd)
+		sysInfo, tcpErr = tcpinfo.GetTCPInfo(fd)
 	})
 
 	// Lock the struct to store the gathered info
 	w.Lock()
 	defer w.Unlock()
+
 	if err != nil {
 		w.InfoErr = err
+		return
+	}
+
+	if tcpErr != nil {
+		w.InfoErr = tcpErr
+		return
+	}
+
+	if sysInfo == nil {
 		return
 	}
 
