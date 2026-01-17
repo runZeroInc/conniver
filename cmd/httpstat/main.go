@@ -100,11 +100,11 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  NO_PROXY      comma-separated list of hosts to exclude from proxy")
 }
 
-func printf(format string, a ...interface{}) (n int, err error) {
+func printf(format string, a ...any) (n int, err error) {
 	return fmt.Fprintf(color.Output, format, a...)
 }
 
-func grayscale(code color.Attribute) func(string, ...interface{}) string {
+func grayscale(code color.Attribute) func(string, ...any) string {
 	return color.New(code + 232).SprintfFunc()
 }
 
