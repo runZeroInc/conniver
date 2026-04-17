@@ -269,15 +269,28 @@ var (
 )
 
 // GetTCPInfo calls getsockopt(2) on Linux to retrieve tcp_info and unpacks that into the golang-friendly TCPInfo.
+//
+// The lpOverlapped argument to WSAIoctl is deliberately nil. Go's net package opens all sockets
+// with WSA_FLAG_OVERLAPPED, so passing a non-nil Overlapped to WSAIoctl puts the call on the
+// asynchronous path: the kernel is free to return WSA_IO_PENDING and keep the pointers we pass
+// (Overlapped, output buffer, and cbbr) live after this function returns. Those pointers all
+// live on the goroutine's stack, which Go's runtime may relocate as soon as the syscall
+// returns. A later asynchronous completion would then write kernel data into whatever has
+// replaced that stack memory — typically another goroutine's active frame — producing random
+// heap/stack corruption crashes that are only observable on Windows.
+//
+// Passing nil forces Windows to complete the request synchronously using its internal
+// synchronous completion path, so the kernel is done with every pointer we pass by the time
+// WSAIoctl returns. We must also pass nil for lpcbBytesReturned per MSDN when lpOverlapped is
+// nil — the output buffer is always the full fixed-size struct so we do not need the length
+// back, and retaining the &cbbr pointer would defeat the purpose of the fix.
 func GetTCPInfo(fds uintptr) (*SysInfo, error) {
 	fd := syscall.Handle(fds)
 
 	// Try _TCP_INFO_v1 first
 	var inbufv1 uint32 = 1
 	var outbufv1 RawInfoV1
-
-	var cbbr uint32 = 0
-	var ov syscall.Overlapped
+	var cbbr uint32
 
 	// Try _TCP_INFO_v1 first to get extra fields
 	if err := syscall.WSAIoctl(
@@ -288,7 +301,7 @@ func GetTCPInfo(fds uintptr) (*SysInfo, error) {
 		(*byte)(unsafe.Pointer(&outbufv1)),
 		uint32(unsafe.Sizeof(outbufv1)),
 		&cbbr,
-		&ov,
+		nil,
 		0,
 	); err == nil {
 		return outbufv1.Unpack(), nil
@@ -305,7 +318,7 @@ func GetTCPInfo(fds uintptr) (*SysInfo, error) {
 		(*byte)(unsafe.Pointer(&outbufv0)),
 		uint32(unsafe.Sizeof(outbufv0)),
 		&cbbr,
-		&ov,
+		nil,
 		0,
 	); err != nil {
 		return nil, fmt.Errorf("could not perform the WSAIoctl: %v", err)
