@@ -1,4 +1,4 @@
-name: Webshot Tests
+name: Conniver Tests
 
 on:
   workflow_dispatch:
