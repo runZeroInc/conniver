@@ -138,6 +138,10 @@ func (w *Conn) reportState(state int, info *tcpinfo.Info, infoErr error) {
 		return
 	}
 	snapshot := w.snapshotLocked()
+	if state == Opened {
+		// Preserve legacy behavior for open callbacks that unwrap tic.Conn.
+		snapshot.Conn = w.Conn
+	}
 	w.Unlock()
 
 	reportStats(snapshot, state)

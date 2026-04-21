@@ -157,6 +157,32 @@ func TestConnSetDeadlinesPassThrough(t *testing.T) {
 	}
 }
 
+func TestConnOpenCallbackSnapshotKeepsConnForCompatibility(t *testing.T) {
+	conn := newFakeConn()
+	openSnapshotCh := make(chan *Conn, 1)
+
+	wrapped := WrapConn(conn, func(snapshot *Conn, state int) {
+		if state == Opened {
+			openSnapshotCh <- snapshot
+		}
+	}).(*Conn)
+
+	select {
+	case snapshot := <-openSnapshotCh:
+		if snapshot == wrapped {
+			t.Fatal("open callback received the live wrapper instead of a snapshot")
+		}
+		if snapshot.Conn == nil {
+			t.Fatal("open callback snapshot.Conn is nil; expected wrapped connection for compatibility")
+		}
+		if got := snapshot.RemoteAddr(); got == nil || got.String() != conn.remoteAddr.String() {
+			t.Fatalf("snapshot.RemoteAddr() = %v, want %v", got, conn.remoteAddr)
+		}
+	case <-time.After(500 * time.Millisecond):
+		t.Fatal("timed out waiting for open callback snapshot")
+	}
+}
+
 func TestConnCloseClosesUnderlyingBeforeCallbackAndOnlyOnce(t *testing.T) {
 	conn := newFakeConn()
 	conn.closeStarted = make(chan struct{})
