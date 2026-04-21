@@ -194,6 +194,17 @@ type SysInfo struct {
 	CCDCTCPABTOT   NullableUint32 `tcpi:"name=cc_dctcp_ab_tot,prom_type=gauge,prom_help='DCTCP AB total count.'" json:"ccDCTCPABTOT,omitempty"`
 }
 
+func (s *SysInfo) Clone() *SysInfo {
+	if s == nil {
+		return nil
+	}
+
+	clone := *s
+	clone.TxOptions = cloneOptions(s.TxOptions)
+	clone.RxOptions = cloneOptions(s.RxOptions)
+	return &clone
+}
+
 func (s *SysInfo) ToMap() map[string]any {
 	r := map[string]any{
 		"state":         s.StateName,
@@ -543,8 +554,8 @@ func (packed *RawTCPInfo) Unpack() *SysInfo {
 			unpacked.TxOptions = append(unpacked.TxOptions, Option{Kind: tcpOptionsMap[flag], Value: 0})
 			unpacked.RxOptions = append(unpacked.RxOptions, Option{Kind: tcpOptionsMap[flag], Value: 0})
 		case TCPI_OPT_WSCALE:
-			unpacked.TxOptions = append(unpacked.TxOptions, Option{Kind: tcpOptionsMap[flag], Value: uint64(packed.snd_wnd)})
-			unpacked.RxOptions = append(unpacked.RxOptions, Option{Kind: tcpOptionsMap[flag], Value: uint64(packed.rcv_wnd)})
+			unpacked.TxOptions = append(unpacked.TxOptions, Option{Kind: tcpOptionsMap[flag], Value: uint64(unpacked.TxWindowScale)})
+			unpacked.RxOptions = append(unpacked.RxOptions, Option{Kind: tcpOptionsMap[flag], Value: uint64(unpacked.RxWindowScale)})
 		}
 	}
 

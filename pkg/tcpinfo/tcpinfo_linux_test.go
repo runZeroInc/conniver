@@ -205,3 +205,36 @@ func TestRawTCPInfo_Unpack(t *testing.T) {
 		})
 	}
 }
+
+func TestRawTCPInfo_UnpackWindowScaleOptions(t *testing.T) {
+	linuxKernelVersion = &kernel.VersionInfo{Kernel: minKernel, Major: minKernelMajor, Minor: minKernelMinor}
+	adaptToKernelVersion()
+
+	raw := RawTCPInfo{
+		options:   TCPI_OPT_WSCALE,
+		bitfield0: (7 << 4) | 5,
+		snd_wnd:   12345,
+		rcv_wnd:   67890,
+	}
+
+	got := raw.Unpack()
+	if len(got.TxOptions) != 1 {
+		t.Fatalf("TxOptions length = %d, want 1", len(got.TxOptions))
+	}
+	if got.TxOptions[0].Kind != tcpOptionsMap[TCPI_OPT_WSCALE] {
+		t.Fatalf("TxOptions[0].Kind = %q, want %q", got.TxOptions[0].Kind, tcpOptionsMap[TCPI_OPT_WSCALE])
+	}
+	if got.TxOptions[0].Value != 5 {
+		t.Fatalf("TxOptions[0].Value = %d, want 5", got.TxOptions[0].Value)
+	}
+
+	if len(got.RxOptions) != 1 {
+		t.Fatalf("RxOptions length = %d, want 1", len(got.RxOptions))
+	}
+	if got.RxOptions[0].Kind != tcpOptionsMap[TCPI_OPT_WSCALE] {
+		t.Fatalf("RxOptions[0].Kind = %q, want %q", got.RxOptions[0].Kind, tcpOptionsMap[TCPI_OPT_WSCALE])
+	}
+	if got.RxOptions[0].Value != 7 {
+		t.Fatalf("RxOptions[0].Value = %d, want 7", got.RxOptions[0].Value)
+	}
+}

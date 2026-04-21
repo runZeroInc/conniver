@@ -107,6 +107,15 @@ type SysInfo struct {
 	SndLimBytesSnd      uint64        `tcpi:"name=snd_lim_bytes_snd,prom_type=gauge,prom_help='Number of bytes limited by congestion window.'" json:"sndLimBytesSnd,omitempty"`
 }
 
+func (s *SysInfo) Clone() *SysInfo {
+	if s == nil {
+		return nil
+	}
+
+	clone := *s
+	return &clone
+}
+
 func (s *SysInfo) ToMap() map[string]any {
 	return map[string]any{
 		"state":               s.StateName,
@@ -144,7 +153,7 @@ func (s *SysInfo) MarshalJSON() ([]byte, error) {
 }
 
 // timeFieldMultiplier is used to convert fields representing time in milliseconds to time.Duration (nanoseconds).
-var timeFieldMultiplier = time.Microsecond
+var timeFieldMultiplier = time.Millisecond
 
 // Unpack converts fields from _TCP_INFO_v0 to SysInfo
 func (packed *RawInfoV0) Unpack() *SysInfo {
@@ -281,9 +290,8 @@ var (
 //
 // Passing nil forces Windows to complete the request synchronously using its internal
 // synchronous completion path, so the kernel is done with every pointer we pass by the time
-// WSAIoctl returns. We must also pass nil for lpcbBytesReturned per MSDN when lpOverlapped is
-// nil — the output buffer is always the full fixed-size struct so we do not need the length
-// back, and retaining the &cbbr pointer would defeat the purpose of the fix.
+// WSAIoctl returns. Note that lpcbBytesReturned (&cbbr) must be a valid pointer when
+// lpOverlapped is nil per MSDN.
 func GetTCPInfo(fds uintptr) (*SysInfo, error) {
 	fd := syscall.Handle(fds)
 

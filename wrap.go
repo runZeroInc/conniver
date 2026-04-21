@@ -42,6 +42,13 @@ type Conn struct {
 	OpenedInfo      *tcpinfo.Info    `json:"openedInfo,omitempty"`
 	ClosedInfo      *tcpinfo.Info    `json:"closedInfo,omitempty"`
 	supportsTCPInfo bool
+	closeStarted    bool
+	closeDone       chan struct{}
+	closeErr        error
+	inFlight        int
+	localAddr       net.Addr
+	remoteAddr      net.Addr
+	ioDrained       *sync.Cond
 	sync.Mutex
 }
 
@@ -65,74 +72,163 @@ func WrapConnWithContext(ctx context.Context, ncon net.Conn, reportStatsFn Repor
 		supportsTCPInfo: tcpinfo.Supported(),
 		Context:         ctx,
 	}
-	w.gatherAndReport(Opened)
+	if ncon != nil {
+		w.localAddr = ncon.LocalAddr()
+		w.remoteAddr = ncon.RemoteAddr()
+	}
+	w.ioDrained = sync.NewCond(&w.Mutex)
+
+	openedInfo, openedInfoErr := w.collectTCPInfo()
+	w.reportState(Opened, openedInfo, openedInfoErr)
 	return w
 }
 
-func (w *Conn) gatherAndReport(state int) {
-	if w.reportStats == nil {
-		return
+func (w *Conn) collectTCPInfo() (*tcpinfo.Info, error) {
+	if !w.supportsTCPInfo {
+		return nil, nil
 	}
 
-	// Only gather TCP info on open and close events once
-	if state != Opened && state != Closed {
-		return
-	}
-	if state == Opened && w.OpenedInfo != nil {
-		return
-	}
-	if state == Closed && w.ClosedInfo != nil {
-		return
-	}
+	w.Lock()
+	conn := w.Conn
+	w.Unlock()
 
-	// Write the report at the end regardless of success or failure
-	defer w.reportStats(w, state)
-
-	// Skipped platform or previously errored
-	if !w.supportsTCPInfo || w.InfoErr != nil {
-		return
-	}
-
-	tcpConn, ok := w.Conn.(*net.TCPConn)
+	tcpConn, ok := conn.(*net.TCPConn)
 	if !ok {
-		return
+		return nil, nil
 	}
 
 	rawConn, err := tcpConn.SyscallConn()
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	var sysInfo *tcpinfo.SysInfo
-	var tcpErr error
+	var infoErr error
 	err = rawConn.Control(func(fd uintptr) {
-		sysInfo, tcpErr = tcpinfo.GetTCPInfo(fd)
+		sysInfo, infoErr = tcpinfo.GetTCPInfo(fd)
 	})
+	if err != nil {
+		return nil, err
+	}
+	if sysInfo == nil {
+		return nil, infoErr
+	}
+	return sysInfo.ToInfo(), infoErr
+}
 
-	// Lock the struct to store the gathered info
+func (w *Conn) applyTCPInfoLocked(state int, info *tcpinfo.Info, infoErr error) {
+	if info != nil {
+		if state == Opened {
+			w.OpenedInfo = info
+		} else {
+			w.ClosedInfo = info
+		}
+	}
+	if info != nil || infoErr != nil {
+		w.InfoErr = infoErr
+	}
+}
+
+func (w *Conn) reportState(state int, info *tcpinfo.Info, infoErr error) {
+	w.Lock()
+	w.applyTCPInfoLocked(state, info, infoErr)
+	reportStats := w.reportStats
+	if reportStats == nil {
+		w.Unlock()
+		return
+	}
+	snapshot := w.snapshotLocked()
+	w.Unlock()
+
+	reportStats(snapshot, state)
+}
+
+func (w *Conn) localAddrLocked() net.Addr {
+	if w.localAddr != nil {
+		return w.localAddr
+	}
+	if w.Conn != nil {
+		return w.Conn.LocalAddr()
+	}
+	return nil
+}
+
+func (w *Conn) remoteAddrLocked() net.Addr {
+	if w.remoteAddr != nil {
+		return w.remoteAddr
+	}
+	if w.Conn != nil {
+		return w.Conn.RemoteAddr()
+	}
+	return nil
+}
+
+func (w *Conn) snapshotLocked() *Conn {
+	return &Conn{
+		Context:         w.Context,
+		OpenedAt:        w.OpenedAt,
+		ClosedAt:        w.ClosedAt,
+		FirstRxAt:       w.FirstRxAt,
+		FirstTxAt:       w.FirstTxAt,
+		LastRxAt:        w.LastRxAt,
+		LastTxAt:        w.LastTxAt,
+		TxBytes:         w.TxBytes,
+		RxBytes:         w.RxBytes,
+		RxErr:           w.RxErr,
+		TxErr:           w.TxErr,
+		InfoErr:         w.InfoErr,
+		Reconnects:      w.Reconnects,
+		OpenedInfo:      w.OpenedInfo.Clone(),
+		ClosedInfo:      w.ClosedInfo.Clone(),
+		supportsTCPInfo: w.supportsTCPInfo,
+		closeStarted:    w.closeStarted,
+		closeErr:        w.closeErr,
+		localAddr:       w.localAddrLocked(),
+		remoteAddr:      w.remoteAddrLocked(),
+	}
+}
+
+func (w *Conn) beginIO() (net.Conn, error) {
 	w.Lock()
 	defer w.Unlock()
 
-	if err != nil {
-		w.InfoErr = err
-		return
+	if w.closeStarted || w.Conn == nil {
+		return nil, net.ErrClosed
 	}
 
-	if tcpErr != nil {
-		w.InfoErr = tcpErr
-		return
+	w.inFlight++
+	return w.Conn, nil
+}
+
+func (w *Conn) finishIO() {
+	w.Lock()
+	defer w.Unlock()
+
+	w.inFlight--
+	if w.closeStarted && w.inFlight == 0 {
+		w.ioDrained.Broadcast()
 	}
 
-	if sysInfo == nil {
-		return
+	if w.inFlight < 0 {
+		w.inFlight = 0
+	}
+}
+
+func (w *Conn) withLiveConn(fn func(net.Conn) error) error {
+	w.Lock()
+	conn := w.Conn
+	closeStarted := w.closeStarted
+	closeErr := w.closeErr
+	w.Unlock()
+
+	if closeStarted || conn == nil {
+		if closeErr != nil {
+			return closeErr
+		}
+		return net.ErrClosed
 	}
 
-	if state == Opened {
-		w.OpenedInfo = sysInfo.ToInfo()
-		return
-	}
-
-	w.ClosedInfo = sysInfo.ToInfo()
+	return fn(conn)
 }
 
 // SetReconnects stores the number of additional connection attempts that were needed to open this connection.
@@ -143,21 +239,70 @@ func (w *Conn) SetReconnects(reconnects int) {
 	w.Reconnects = reconnects
 }
 
-// Close invokes the reportWrapper with a close event before closing the connection.
-func (w *Conn) Close() error {
+// Close closes the underlying connection once, waits for in-flight wrapper I/O
+// to finish updating stats, and invokes the callback with a detached snapshot.
+func (w *Conn) Close() (err error) {
 	w.Lock()
+	if w.closeDone != nil {
+		done := w.closeDone
+		w.Unlock()
+		<-done
+
+		w.Lock()
+		defer w.Unlock()
+		return w.closeErr
+	}
+	if w.Conn == nil {
+		defer w.Unlock()
+		if w.closeErr != nil {
+			return w.closeErr
+		}
+		return net.ErrClosed
+	}
+
+	w.closeStarted = true
 	w.ClosedAt = time.Now().UnixNano()
+	done := make(chan struct{})
+	w.closeDone = done
+	conn := w.Conn
 	w.Unlock()
-	// The gatherAndReport function must not be called while holding the lock.
-	w.gatherAndReport(Closed)
-	return w.Conn.Close()
+
+	defer close(done)
+
+	closedInfo, closedInfoErr := w.collectTCPInfo()
+	if conn != nil {
+		err = conn.Close()
+	} else {
+		err = net.ErrClosed
+	}
+
+	w.Lock()
+	w.closeErr = err
+	w.Conn = nil
+	for w.inFlight > 0 {
+		w.ioDrained.Wait()
+	}
+	w.applyTCPInfoLocked(Closed, closedInfo, closedInfoErr)
+	reportStats := w.reportStats
+	snapshot := w.snapshotLocked()
+	w.Unlock()
+
+	if reportStats != nil {
+		reportStats(snapshot, Closed)
+	}
+
+	return err
 }
 
 // Read wraps the underlying Read method and tracks the bytes received
 func (w *Conn) Read(b []byte) (int, error) {
-	n, err := w.Conn.Read(b)
+	conn, err := w.beginIO()
+	if err != nil {
+		return 0, err
+	}
+
+	n, err := conn.Read(b)
 	w.Lock()
-	defer w.Unlock()
 	if err == nil && n > 0 {
 		ts := time.Now().UnixNano()
 		if w.FirstRxAt == 0 {
@@ -171,14 +316,20 @@ func (w *Conn) Read(b []byte) (int, error) {
 	if err, ok := err.(net.Error); ok && !err.Timeout() {
 		w.RxErr = err
 	}
+	w.Unlock()
+	w.finishIO()
 	return n, err
 }
 
 // Write wraps the underlying Write method and tracks the bytes sent
 func (w *Conn) Write(b []byte) (int, error) {
-	n, err := w.Conn.Write(b)
+	conn, err := w.beginIO()
+	if err != nil {
+		return 0, err
+	}
+
+	n, err := conn.Write(b)
 	w.Lock()
-	defer w.Unlock()
 	if err == nil && n > 0 {
 		ts := time.Now().UnixNano()
 		if w.FirstTxAt == 0 {
@@ -189,17 +340,55 @@ func (w *Conn) Write(b []byte) (int, error) {
 		}
 	}
 	w.TxBytes += int64(n)
-	w.TxErr = err
 	if err, ok := err.(net.Error); ok && !err.Timeout() {
 		w.TxErr = err
 	}
+	w.Unlock()
+	w.finishIO()
 	return n, err
+}
+
+func (w *Conn) LocalAddr() net.Addr {
+	w.Lock()
+	defer w.Unlock()
+	return w.localAddrLocked()
+}
+
+func (w *Conn) RemoteAddr() net.Addr {
+	w.Lock()
+	defer w.Unlock()
+	return w.remoteAddrLocked()
+}
+
+func (w *Conn) SetDeadline(t time.Time) error {
+	return w.withLiveConn(func(conn net.Conn) error {
+		return conn.SetDeadline(t)
+	})
+}
+
+func (w *Conn) SetReadDeadline(t time.Time) error {
+	return w.withLiveConn(func(conn net.Conn) error {
+		return conn.SetReadDeadline(t)
+	})
+}
+
+func (w *Conn) SetWriteDeadline(t time.Time) error {
+	return w.withLiveConn(func(conn net.Conn) error {
+		return conn.SetWriteDeadline(t)
+	})
 }
 
 func (w *Conn) Warnings() []string {
 	w.Lock()
 	defer w.Unlock()
 	return w.warnings()
+}
+
+func addrString(addr net.Addr) string {
+	if addr == nil {
+		return ""
+	}
+	return addr.String()
 }
 
 func (w *Conn) warnings() []string {
@@ -214,7 +403,9 @@ func (w *Conn) warnings() []string {
 		if info.Retransmits > 0 {
 			warns = append(warns, "retransmits="+strconv.FormatInt(int64(info.Retransmits), 10))
 		}
-		warns = append(warns, info.Sys.Warnings()...)
+		if info.Sys != nil {
+			warns = append(warns, info.Sys.Warnings()...)
+		}
 	}
 	return warns
 }
@@ -222,6 +413,8 @@ func (w *Conn) warnings() []string {
 func (w *Conn) ToMap() map[string]any {
 	w.Lock()
 	defer w.Unlock()
+	localAddr := w.localAddrLocked()
+	remoteAddr := w.remoteAddrLocked()
 	fset := map[string]any{
 		"openedAt":   w.OpenedAt,
 		"closedAt":   w.ClosedAt,
@@ -232,12 +425,9 @@ func (w *Conn) ToMap() map[string]any {
 		"txBytes":    w.TxBytes,
 		"rxBytes":    w.RxBytes,
 		"reconnects": w.Reconnects,
-		"localAddr":  w.LocalAddr().String(),
-		"remoteAddr": w.RemoteAddr().String(),
+		"localAddr":  addrString(localAddr),
+		"remoteAddr": addrString(remoteAddr),
 		"warnings":   w.warnings(),
-	}
-	if w.RxErr != nil {
-		fset["rxErr"] = w.RxErr.Error()
 	}
 	if w.RxErr != nil {
 		fset["rxErr"] = w.RxErr.Error()

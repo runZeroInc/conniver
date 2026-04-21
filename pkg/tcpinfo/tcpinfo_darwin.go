@@ -121,6 +121,17 @@ type SysInfo struct {
 	TxRetransmitPackets uint64        `tcpi:"name=tx_retransmit_packets,prom_type=gauge,prom_help='Number of retransmitted packets.'" json:"txRetransmitPackets,omitempty"`
 }
 
+func (s *SysInfo) Clone() *SysInfo {
+	if s == nil {
+		return nil
+	}
+
+	clone := *s
+	clone.TxOptions = cloneOptions(s.TxOptions)
+	clone.RxOptions = cloneOptions(s.RxOptions)
+	return &clone
+}
+
 func (s *SysInfo) ToMap() map[string]any {
 	return map[string]any{
 		"state":               s.StateName,

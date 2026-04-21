@@ -12,6 +12,15 @@ type SysInfo struct {
 	// Empty for unsupported platforms
 }
 
+func (s *SysInfo) Clone() *SysInfo {
+	if s == nil {
+		return nil
+	}
+
+	clone := *s
+	return &clone
+}
+
 func (s *SysInfo) ToInfo() *Info {
 	return &Info{}
 }
