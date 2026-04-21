@@ -123,8 +123,9 @@ The `conniver.Conn`, `tcpinfoInfo`, and `SysInfo` structs all support a `ToMap()
 returns a `map[string]any` that can be used to access OS-specific fields dynamically.
 
 The function passed to `conniver.WrapConn` is called for both the `opened` and `closed` states.
+Each callback receives a detached snapshot of the wrapper state, not the live `net.Conn` wrapper itself.
 The `opened` callback fires right *after* the connection is established.
-The `closed` callback fires right *before* the connection is closed.
+The `closed` callback fires right *after* the connection has been closed, using TCP info captured immediately before close.
 Separate `*tcpinfo.Info{}` stats are recorded for both states.
 
 The following reporting function will report the RTT at connection open and just before close, by

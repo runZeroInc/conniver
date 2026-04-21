@@ -63,6 +63,25 @@ type Option struct {
 	Value uint64 `json:"value"`
 }
 
+func cloneOptions(options []Option) []Option {
+	if options == nil {
+		return nil
+	}
+	return append([]Option(nil), options...)
+}
+
+func (i *Info) Clone() *Info {
+	if i == nil {
+		return nil
+	}
+
+	clone := *i
+	clone.TxOptions = cloneOptions(i.TxOptions)
+	clone.RxOptions = cloneOptions(i.RxOptions)
+	clone.Sys = i.Sys.Clone()
+	return &clone
+}
+
 func (o *Option) String() string {
 	if o.Value == 0 {
 		return o.Kind
