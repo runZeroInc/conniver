@@ -42,7 +42,7 @@ func main() {
 					cRTTVar = c.ClosedInfo.RTTVar.String()
 				}
 				fmt.Printf("Connection %s -> %s took %s, sent:%d/recv:%d bytes, starting RTT %s(%s) and ending RTT %s(%s)\nWarnings:%s\n%s\n\n",
-					c.LocalAddr().String(), c.RemoteAddr().String(),
+					c.LocalAddrString(), c.RemoteAddrString(),
 					time.Duration(c.ClosedAt-c.OpenedAt),
 					c.TxBytes, c.RxBytes,
 					oRTT, oRTTVar,

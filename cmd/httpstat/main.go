@@ -213,6 +213,9 @@ func dialContext(network string) func(ctx context.Context, network, addr string)
 			KeepAlive: 30 * time.Second,
 			DualStack: false,
 		}).DialContext(ctx, network, addr)
+		if err != nil {
+			return nil, err
+		}
 		conn = conniver.WrapConn(conn, func(conn *conniver.Conn, state int) {
 			if state == conniver.Closed {
 				setConniver(conn)
@@ -403,7 +406,7 @@ func visit(url *url.URL) {
 	if c := getConniver(); c != nil {
 		info := c.ClosedInfo
 		if info != nil {
-
+			printf("%s:\t%s\n", grayscale(14)("Remote"), color.CyanString("%s", c.RemoteAddrString()))
 			printf("%s:\t\t%s\n", grayscale(14)("RTT"), color.CyanString("%s", info.RTT))
 			printf("%s:\t\t%s\n", grayscale(14)("Sent"), color.CyanString("%d bytes", c.TxBytes))
 			printf("%s:\t%s\n", grayscale(14)("Received"), color.CyanString("%d bytes", c.RxBytes))

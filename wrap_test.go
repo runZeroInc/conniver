@@ -157,6 +157,24 @@ func TestConnSetDeadlinesPassThrough(t *testing.T) {
 	}
 }
 
+func TestConnAddrStringMethods(t *testing.T) {
+	wrapped := WrapConn(newFakeConn(), nil).(*Conn)
+	if got, want := wrapped.LocalAddrString(), "127.0.0.1:12345"; got != want {
+		t.Fatalf("LocalAddrString() = %q, want %q", got, want)
+	}
+	if got, want := wrapped.RemoteAddrString(), "127.0.0.1:443"; got != want {
+		t.Fatalf("RemoteAddrString() = %q, want %q", got, want)
+	}
+
+	empty := &Conn{}
+	if got := empty.LocalAddrString(); got != "unknown" {
+		t.Fatalf("LocalAddrString() on empty conn = %q, want %q", got, "unknown")
+	}
+	if got := empty.RemoteAddrString(); got != "unknown" {
+		t.Fatalf("RemoteAddrString() on empty conn = %q, want %q", got, "unknown")
+	}
+}
+
 func TestConnOpenCallbackSnapshotKeepsConnForCompatibility(t *testing.T) {
 	conn := newFakeConn()
 	openSnapshotCh := make(chan *Conn, 1)

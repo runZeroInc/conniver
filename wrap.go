@@ -364,6 +364,18 @@ func (w *Conn) RemoteAddr() net.Addr {
 	return w.remoteAddrLocked()
 }
 
+func (w *Conn) LocalAddrString() string {
+	w.Lock()
+	defer w.Unlock()
+	return addrString(w.localAddrLocked(), "unknown")
+}
+
+func (w *Conn) RemoteAddrString() string {
+	w.Lock()
+	defer w.Unlock()
+	return addrString(w.remoteAddrLocked(), "unknown")
+}
+
 func (w *Conn) SetDeadline(t time.Time) error {
 	return w.withLiveConn(func(conn net.Conn) error {
 		return conn.SetDeadline(t)
@@ -388,9 +400,9 @@ func (w *Conn) Warnings() []string {
 	return w.warnings()
 }
 
-func addrString(addr net.Addr) string {
+func addrString(addr net.Addr, fallback string) string {
 	if addr == nil {
-		return ""
+		return fallback
 	}
 	return addr.String()
 }
@@ -429,8 +441,8 @@ func (w *Conn) ToMap() map[string]any {
 		"txBytes":    w.TxBytes,
 		"rxBytes":    w.RxBytes,
 		"reconnects": w.Reconnects,
-		"localAddr":  addrString(localAddr),
-		"remoteAddr": addrString(remoteAddr),
+		"localAddr":  addrString(localAddr, ""),
+		"remoteAddr": addrString(remoteAddr, ""),
 		"warnings":   w.warnings(),
 	}
 	if w.RxErr != nil {

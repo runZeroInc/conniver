@@ -30,7 +30,13 @@ func main() {
 		// Pass the `fd` to GetTCPInfo here
 		sysInfo, err = tcpinfo.GetTCPInfo(fd)
 	}); err != nil {
-		return
+		panic(err)
+	}
+	if err != nil {
+		panic(err)
+	}
+	if sysInfo == nil {
+		panic("tcpinfo unavailable for live TCP connection")
 	}
 
 	jb, _ := json.MarshalIndent(sysInfo, "", "  ")
