@@ -195,6 +195,12 @@ func TestRawTCPInfo_Unpack(t *testing.T) {
 			var raw RawTCPInfo
 			linuxKernelVersion = &tt.fields.kernel
 			adaptToKernelVersion()
+			raw.bitfield0 = (tt.fields.RxWindowScale << 4) | (tt.fields.TxWindowScale & 0x0f)
+			var dlAppLimited uint8
+			if tt.fields.DeliveryRateAppLimited.Value {
+				dlAppLimited = 1
+			}
+			raw.bitfield1 = (tt.fields.FastOpenClientFail.Value << 1) | dlAppLimited
 			if got := raw.Unpack(); !reflect.DeepEqual(got, tt.want) {
 				for n, s := range tcpInfoSizes {
 					fmt.Printf("%d tcpIntoSize = %#v | %v\n", n, s.Version, *s.Flag)

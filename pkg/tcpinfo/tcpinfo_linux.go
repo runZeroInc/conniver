@@ -544,7 +544,6 @@ func (packed *RawTCPInfo) Unpack() *SysInfo {
 		unpacked.TotalRTOTime.Value = packed.total_rto_time
 	}
 
-	unpacked.TxOptions = []Option{}
 	for _, flag := range tcpOptions {
 		if packed.options&flag == 0 {
 			continue
