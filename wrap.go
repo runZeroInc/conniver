@@ -42,6 +42,7 @@ type Conn struct {
 	OpenedInfo      *tcpinfo.Info    `json:"openedInfo,omitempty"`
 	ClosedInfo      *tcpinfo.Info    `json:"closedInfo,omitempty"`
 	supportsTCPInfo bool
+	closed          bool
 	sync.Mutex
 }
 
@@ -78,61 +79,57 @@ func (w *Conn) gatherAndReport(state int) {
 	if state != Opened && state != Closed {
 		return
 	}
+
+	w.Lock()
 	if state == Opened && w.OpenedInfo != nil {
+		w.Unlock()
 		return
 	}
 	if state == Closed && w.ClosedInfo != nil {
+		w.Unlock()
 		return
 	}
+	w.Unlock()
+
+	// Gather TCP info outside the lock (syscall may block)
+	var sysInfo *tcpinfo.SysInfo
+	var infoErr error
+
+	if w.supportsTCPInfo && w.InfoErr == nil {
+		if tcpConn, ok := w.Conn.(*net.TCPConn); ok {
+			rawConn, err := tcpConn.SyscallConn()
+			if err != nil {
+				infoErr = err
+			} else {
+				var tcpErr error
+				err = rawConn.Control(func(fd uintptr) {
+					sysInfo, tcpErr = tcpinfo.GetTCPInfo(fd)
+				})
+				if err != nil {
+					infoErr = err
+				} else if tcpErr != nil {
+					infoErr = tcpErr
+				}
+			}
+		}
+	}
+
+	// Lock to store gathered info, then call reportStats while still holding
+	// the lock so the callback sees a consistent snapshot.
+	w.Lock()
+	if infoErr != nil {
+		w.InfoErr = infoErr
+	} else if sysInfo != nil {
+		if state == Opened {
+			w.OpenedInfo = sysInfo.ToInfo()
+		} else {
+			w.ClosedInfo = sysInfo.ToInfo()
+		}
+	}
+	w.Unlock()
 
 	// Write the report at the end regardless of success or failure
-	defer w.reportStats(w, state)
-
-	// Skipped platform or previously errored
-	if !w.supportsTCPInfo || w.InfoErr != nil {
-		return
-	}
-
-	tcpConn, ok := w.Conn.(*net.TCPConn)
-	if !ok {
-		return
-	}
-
-	rawConn, err := tcpConn.SyscallConn()
-	if err != nil {
-		return
-	}
-
-	var sysInfo *tcpinfo.SysInfo
-	var tcpErr error
-	err = rawConn.Control(func(fd uintptr) {
-		sysInfo, tcpErr = tcpinfo.GetTCPInfo(fd)
-	})
-
-	// Lock the struct to store the gathered info
-	w.Lock()
-	defer w.Unlock()
-
-	if err != nil {
-		w.InfoErr = err
-		return
-	}
-
-	if tcpErr != nil {
-		w.InfoErr = tcpErr
-		return
-	}
-
-	if sysInfo == nil {
-		return
-	}
-
-	if state == Opened {
-		w.OpenedInfo = sysInfo.ToInfo()
-		return
-	}
-
-	w.ClosedInfo = sysInfo.ToInfo()
+	w.reportStats(w, state)
 }
 
 // SetReconnects stores the number of additional connection attempts that were needed to open this connection.
@@ -144,8 +141,14 @@ func (w *Conn) SetReconnects(reconnects int) {
 }
 
 // Close invokes the reportWrapper with a close event before closing the connection.
+// Close is safe to call multiple times; only the first call gathers stats and reports.
 func (w *Conn) Close() error {
 	w.Lock()
+	if w.closed {
+		w.Unlock()
+		return w.Conn.Close()
+	}
+	w.closed = true
 	w.ClosedAt = time.Now().UnixNano()
 	w.Unlock()
 	// The gatherAndReport function must not be called while holding the lock.
@@ -189,7 +192,6 @@ func (w *Conn) Write(b []byte) (int, error) {
 		}
 	}
 	w.TxBytes += int64(n)
-	w.TxErr = err
 	if err, ok := err.(net.Error); ok && !err.Timeout() {
 		w.TxErr = err
 	}
@@ -235,9 +237,6 @@ func (w *Conn) ToMap() map[string]any {
 		"localAddr":  w.LocalAddr().String(),
 		"remoteAddr": w.RemoteAddr().String(),
 		"warnings":   w.warnings(),
-	}
-	if w.RxErr != nil {
-		fset["rxErr"] = w.RxErr.Error()
 	}
 	if w.RxErr != nil {
 		fset["rxErr"] = w.RxErr.Error()

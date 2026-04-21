@@ -31,12 +31,22 @@ func main() {
 					return
 				}
 				raw, _ := json.Marshal(c)
+				oRTT, oRTTVar := "n/a", "n/a"
+				cRTT, cRTTVar := "n/a", "n/a"
+				if c.OpenedInfo != nil {
+					oRTT = c.OpenedInfo.RTT.String()
+					oRTTVar = c.OpenedInfo.RTTVar.String()
+				}
+				if c.ClosedInfo != nil {
+					cRTT = c.ClosedInfo.RTT.String()
+					cRTTVar = c.ClosedInfo.RTTVar.String()
+				}
 				fmt.Printf("Connection %s -> %s took %s, sent:%d/recv:%d bytes, starting RTT %s(%s) and ending RTT %s(%s)\nWarnings:%s\n%s\n\n",
 					c.LocalAddr().String(), c.RemoteAddr().String(),
 					time.Duration(c.ClosedAt-c.OpenedAt),
 					c.TxBytes, c.RxBytes,
-					c.OpenedInfo.RTT, c.OpenedInfo.RTTVar,
-					c.ClosedInfo.RTT, c.ClosedInfo.RTTVar,
+					oRTT, oRTTVar,
+					cRTT, cRTTVar,
 					strings.Join(c.Warnings(), ", "),
 					string(raw),
 				)

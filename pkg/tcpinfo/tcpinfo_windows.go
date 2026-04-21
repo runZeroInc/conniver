@@ -281,9 +281,8 @@ var (
 //
 // Passing nil forces Windows to complete the request synchronously using its internal
 // synchronous completion path, so the kernel is done with every pointer we pass by the time
-// WSAIoctl returns. We must also pass nil for lpcbBytesReturned per MSDN when lpOverlapped is
-// nil — the output buffer is always the full fixed-size struct so we do not need the length
-// back, and retaining the &cbbr pointer would defeat the purpose of the fix.
+// WSAIoctl returns. Note that lpcbBytesReturned (&cbbr) must be a valid pointer when
+// lpOverlapped is nil per MSDN.
 func GetTCPInfo(fds uintptr) (*SysInfo, error) {
 	fd := syscall.Handle(fds)
 
