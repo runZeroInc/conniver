@@ -52,18 +52,21 @@ type Conn struct {
 	sync.Mutex
 }
 
-// WrapConn wraps the given net.Conn, triggers an immediate report in Open state,
-// and returns the wrapped connection. Reads and writes are tracked and the final
-// report is triggered on Close. Separate tcpinfo stats are gathered on open and
-// close events.
+// WrapConn wraps the given net.Conn and returns the wrapped connection. Reads
+// and writes are tracked and the report callback is triggered exactly once on
+// Close. Per-connection tcpinfo is collected at open time and stored on the
+// wrapper (OpenedInfo) so it is available to the Close-time callback.
+//
+// Note: as of v0.0.10 the Open-state callback is no longer fired. Callers that
+// previously consumed the Opened callback should use the OpenedInfo on the
+// snapshot delivered to the Close callback instead. This avoids the per-open
+// allocation churn of double-emitting a report (once at open, once at close).
 func WrapConn(ncon net.Conn, reportStatsFn ReportStatsFn) net.Conn {
 	return WrapConnWithContext(context.Background(), ncon, reportStatsFn)
 }
 
-// WrapConnWithContext wraps the given net.Conn, triggers an immediate report in Open state,
-// and returns the wrapped connection. Reads and writes are tracked and the final
-// report is triggered on Close. Separate tcpinfo stats are gathered on open and
-// close events.
+// WrapConnWithContext is the context-aware variant of WrapConn. See WrapConn
+// for the callback contract.
 func WrapConnWithContext(ctx context.Context, ncon net.Conn, reportStatsFn ReportStatsFn) net.Conn {
 	w := &Conn{
 		Conn:            ncon,
@@ -78,8 +81,13 @@ func WrapConnWithContext(ctx context.Context, ncon net.Conn, reportStatsFn Repor
 	}
 	w.ioDrained = sync.NewCond(&w.Mutex)
 
+	// Collect open-time tcpinfo and store it on the wrapper. The Close-time
+	// callback receives a snapshot that includes OpenedInfo, so consumers can
+	// access the open-state stats without us emitting a second report.
 	openedInfo, openedInfoErr := w.collectTCPInfo()
-	w.reportState(Opened, openedInfo, openedInfoErr)
+	w.Lock()
+	w.applyTCPInfoLocked(Opened, openedInfo, openedInfoErr)
+	w.Unlock()
 	return w
 }
 
@@ -129,7 +137,11 @@ func (w *Conn) applyTCPInfoLocked(state int, info *tcpinfo.Info, infoErr error) 
 	}
 }
 
-func (w *Conn) reportState(state int, info *tcpinfo.Info, infoErr error) {
+// reportState was used by the Open-state callback path which has been removed.
+// It is retained as a small helper in case future code wants to fire the
+// callback for additional lifecycle states without re-implementing the
+// snapshot-under-lock dance.
+func (w *Conn) reportState(state int, info *tcpinfo.Info, infoErr error) { //nolint:unused
 	w.Lock()
 	w.applyTCPInfoLocked(state, info, infoErr)
 	reportStats := w.reportStats

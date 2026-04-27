@@ -175,7 +175,7 @@ func TestConnAddrStringMethods(t *testing.T) {
 	}
 }
 
-func TestConnOpenCallbackSnapshotKeepsConnForCompatibility(t *testing.T) {
+func TestConnOpenCallbackIsNoLongerFired(t *testing.T) {
 	conn := newFakeConn()
 	openSnapshotCh := make(chan *Conn, 1)
 
@@ -185,19 +185,18 @@ func TestConnOpenCallbackSnapshotKeepsConnForCompatibility(t *testing.T) {
 		}
 	}).(*Conn)
 
+	// As of v0.0.10 the Open-state callback is no longer fired. Consumers must
+	// read OpenedInfo (and other open-time stats) off the snapshot delivered to
+	// the Close-state callback instead.
 	select {
-	case snapshot := <-openSnapshotCh:
-		if snapshot == wrapped {
-			t.Fatal("open callback received the live wrapper instead of a snapshot")
-		}
-		if snapshot.Conn == nil {
-			t.Fatal("open callback snapshot.Conn is nil; expected wrapped connection for compatibility")
-		}
-		if got := snapshot.RemoteAddr(); got == nil || got.String() != conn.remoteAddr.String() {
-			t.Fatalf("snapshot.RemoteAddr() = %v, want %v", got, conn.remoteAddr)
-		}
-	case <-time.After(500 * time.Millisecond):
-		t.Fatal("timed out waiting for open callback snapshot")
+	case <-openSnapshotCh:
+		t.Fatal("Open-state callback unexpectedly fired; it was removed")
+	case <-time.After(50 * time.Millisecond):
+	}
+
+	// The wrapper itself is still constructed and tracking the connection.
+	if got := wrapped.RemoteAddrString(); got != conn.remoteAddr.String() {
+		t.Fatalf("wrapped.RemoteAddrString() = %q, want %q", got, conn.remoteAddr.String())
 	}
 }
 
