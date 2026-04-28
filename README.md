@@ -40,6 +40,9 @@ func main() {
 				return nil, err
 			}
 			return conniver.WrapConn(conn, func(c *conniver.Conn, state int) {
+				// The Opened-state callback is opt-in; pass
+				// conniver.WithEmitOpenCallback(true) as a third argument to
+				// WrapConn if you want a notification at connect time as well.
 				if state != conniver.Closed {
 					return
 				}
@@ -122,11 +125,20 @@ The `*SysInfo` fields vary dramatically by operating system and require OS build
 The `conniver.Conn`, `tcpinfoInfo`, and `SysInfo` structs all support a `ToMap()` function, which
 returns a `map[string]any` that can be used to access OS-specific fields dynamically.
 
-The function passed to `conniver.WrapConn` is called for both the `opened` and `closed` states.
+The function passed to `conniver.WrapConn` is called for the `closed` state by default.
 Each callback receives a detached snapshot of the wrapper state, not the live `net.Conn` wrapper itself.
-The `opened` callback fires right *after* the connection is established.
-The `closed` callback fires right *after* the connection has been closed, using TCP info captured immediately before close.
-Separate `*tcpinfo.Info{}` stats are recorded for both states.
+The `closed` callback fires right *after* the connection has been closed, using TCP info captured
+immediately before close. Open-time TCP info is collected automatically and exposed on the same
+snapshot via `OpenedInfo`, so most callers only need to handle the `closed` event.
+
+If you also want a notification at connect time, opt back into the `opened` callback by passing
+`conniver.WithEmitOpenCallback(true)` to `WrapConn` / `WrapConnWithContext`. When enabled, the
+`opened` callback fires right *after* the connection is established, in addition to the `closed`
+callback. Separate `*tcpinfo.Info{}` stats are recorded for both states.
+
+```go
+conn = conniver.WrapConn(conn, reportFn, conniver.WithEmitOpenCallback(true))
+```
 
 The following reporting function will report the RTT at connection open and just before close, by
 catching the `closed` event and reviewing both fields.

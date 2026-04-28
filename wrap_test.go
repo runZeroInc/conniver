@@ -175,7 +175,7 @@ func TestConnAddrStringMethods(t *testing.T) {
 	}
 }
 
-func TestConnOpenCallbackIsNoLongerFired(t *testing.T) {
+func TestConnOpenCallbackNotFiredByDefault(t *testing.T) {
 	conn := newFakeConn()
 	openSnapshotCh := make(chan *Conn, 1)
 
@@ -185,18 +185,38 @@ func TestConnOpenCallbackIsNoLongerFired(t *testing.T) {
 		}
 	}).(*Conn)
 
-	// As of v0.0.10 the Open-state callback is no longer fired. Consumers must
-	// read OpenedInfo (and other open-time stats) off the snapshot delivered to
-	// the Close-state callback instead.
+	// As of v0.0.10 the Open-state callback is opt-in. Without
+	// WithEmitOpenCallback, consumers must read OpenedInfo (and other open-time
+	// stats) off the snapshot delivered to the Close-state callback instead.
 	select {
 	case <-openSnapshotCh:
-		t.Fatal("Open-state callback unexpectedly fired; it was removed")
+		t.Fatal("Open-state callback unexpectedly fired; it is opt-in via WithEmitOpenCallback")
 	case <-time.After(50 * time.Millisecond):
 	}
 
 	// The wrapper itself is still constructed and tracking the connection.
 	if got := wrapped.RemoteAddrString(); got != conn.remoteAddr.String() {
 		t.Fatalf("wrapped.RemoteAddrString() = %q, want %q", got, conn.remoteAddr.String())
+	}
+}
+
+func TestConnOpenCallbackFiresWhenEnabled(t *testing.T) {
+	conn := newFakeConn()
+	openSnapshotCh := make(chan *Conn, 1)
+
+	WrapConn(conn, func(snapshot *Conn, state int) {
+		if state == Opened {
+			openSnapshotCh <- snapshot
+		}
+	}, WithEmitOpenCallback(true))
+
+	select {
+	case snap := <-openSnapshotCh:
+		if snap == nil {
+			t.Fatal("Open-state callback delivered a nil snapshot")
+		}
+	case <-time.After(time.Second):
+		t.Fatal("Open-state callback did not fire even with WithEmitOpenCallback(true)")
 	}
 }
 

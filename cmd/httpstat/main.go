@@ -217,6 +217,9 @@ func dialContext(network string) func(ctx context.Context, network, addr string)
 			return nil, err
 		}
 		conn = conniver.WrapConn(conn, func(conn *conniver.Conn, state int) {
+			// The Opened-state callback is opt-in; pass
+			// conniver.WithEmitOpenCallback(true) as a third argument to
+			// WrapConn if you also want a callback at connect time.
 			if state == conniver.Closed {
 				setConniver(conn)
 			}

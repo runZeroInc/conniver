@@ -27,6 +27,9 @@ func main() {
 				return nil, err
 			}
 			return conniver.WrapConn(conn, func(c *conniver.Conn, state int) {
+				// The Opened-state callback is opt-in; pass
+				// conniver.WithEmitOpenCallback(true) as a third argument to
+				// WrapConn if you want a notification at connect time as well.
 				if state != conniver.Closed {
 					return
 				}
