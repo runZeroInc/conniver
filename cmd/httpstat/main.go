@@ -511,13 +511,15 @@ func readResponseBody(req *http.Request, resp *http.Response) string {
 		filename := outputFile
 
 		if saveOutput {
-			// try to get the filename from the Content-Disposition header
-			// otherwise fall back to the RequestURI
-			if filename = getFilenameFromHeaders(resp.Header); filename == "" {
+			// try to get the filename from the Content-Disposition header,
+			// otherwise fall back to the RequestURI. path.Base both: the server
+			// gets to say what the file is called, not where it lands.
+			filename = path.Base(getFilenameFromHeaders(resp.Header))
+			if filename == "." {
 				filename = path.Base(req.URL.RequestURI())
 			}
 
-			if filename == "/" {
+			if filename == "/" || filename == "." || filename == ".." {
 				log.Fatalf("No remote filename; specify output filename with -o to save response body")
 			}
 		}
