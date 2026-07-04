@@ -173,7 +173,7 @@ type SysInfo struct {
 	Rehash                 NullableUint32   `tcpi:"name=rehash,prom_type=gauge,prom_help='PLB or timeout triggered rehash attempts.'" json:"rehash,omitempty"`
 	TotalRTO               NullableUint16   `tcpi:"name=total_rto,prom_type=counter,prom_help='Total number of RTO timeouts, including SYN/SYN-ACK and recurring timeouts.'" json:"totalRTO,omitempty"`
 	TotalRTORecoveries     NullableUint16   `tcpi:"name=total_rto_recoveries,prom_type=counter,prom_help='Total number of RTO recoveries, including any unfinished recovery.'" json:"totalRTORecoveries,omitempty"`
-	TotalRTOTime           NullableUint32   `tcpi:"name=total_rto_time,prom_type=counter,prom_help='Total time spent in RTO recoveries in nanoseconds, including any unfinished recovery.'" json:"totalRTOTime,omitempty"`
+	TotalRTOTime           NullableUint32   `tcpi:"name=total_rto_time,prom_type=counter,prom_help='Total time spent in RTO recoveries in milliseconds, including any unfinished recovery.'" json:"totalRTOTime,omitempty"`
 	CCAlgorithm            string           `tcpi:"name=cc_algorithm,prom_type=gauge,prom_help='Congestion control algorithm in use for this connection.'" json:"ccAlgorithm,omitempty"`
 	// Vegas
 	CCVegasEnabled NullableUint32   `tcpi:"name=cc_vegas_enabled,prom_type=gauge,prom_help='Whether TCP Vegas is enabled system-wide (true/false).'" json:"ccVegasEnabled,omitempty"`
