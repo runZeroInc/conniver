@@ -5,6 +5,7 @@ package os
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -153,6 +154,32 @@ func runEtcReleaseParsingTests(t *testing.T, tests []EtcReleaseParsingTest, pars
 				t.Fatalf("expected %q, got %q", test.expected, s)
 			}
 		})
+	}
+}
+
+// a line past bufio's 64 KiB token limit stops the scan; the value must not
+// come back empty-with-nil so GetOperatingSystem quietly reports "Linux"
+func TestOsReleaseScanError(t *testing.T) {
+	backup := etcOsRelease
+	altBackup := altOsRelease
+	dir := os.TempDir()
+	etcOsRelease = filepath.Join(dir, "etcOsRelease")
+	altOsRelease = filepath.Join(dir, "altOsRelease")
+
+	defer func() {
+		os.Remove(etcOsRelease)
+		etcOsRelease = backup
+		altOsRelease = altBackup
+	}()
+
+	content := strings.Repeat("A", 65*1024) + "\nPRETTY_NAME=\"Ubuntu 14.04 LTS\"\n"
+	if err := os.WriteFile(etcOsRelease, []byte(content), 0o600); err != nil {
+		t.Fatalf("failed to write to %s: %v", etcOsRelease, err)
+	}
+
+	s, err := GetOperatingSystem()
+	if err == nil {
+		t.Fatalf("expected scan error, got %q with nil error", s)
 	}
 }
 

@@ -77,6 +77,11 @@ func getValueFromOsRelease(key string) (string, error) {
 		}
 	}
 
+	// a stopped scan (oversized line, mid-read i/o error) must not pass as an empty value
+	if err := scanner.Err(); err != nil {
+		return "", err
+	}
+
 	return value, nil
 }
 
