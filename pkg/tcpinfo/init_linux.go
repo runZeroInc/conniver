@@ -46,7 +46,7 @@ var tcpInfoSizes = []VersionedStructSize{
 	{Version: kernel.VersionInfo{Kernel: 4, Major: 1, Minor: 0}, Size: 136, Flag: &kernelVersionIsAtLeast_4_1},
 	{Version: kernel.VersionInfo{Kernel: 4, Major: 2, Minor: 0}, Size: 144, Flag: &kernelVersionIsAtLeast_4_2},
 	{Version: kernel.VersionInfo{Kernel: 4, Major: 6, Minor: 0}, Size: 160, Flag: &kernelVersionIsAtLeast_4_6},
-	{Version: kernel.VersionInfo{Kernel: 4, Major: 9, Minor: 0}, Size: 148, Flag: &kernelVersionIsAtLeast_4_9},
+	{Version: kernel.VersionInfo{Kernel: 4, Major: 9, Minor: 0}, Size: 168, Flag: &kernelVersionIsAtLeast_4_9},
 	{Version: kernel.VersionInfo{Kernel: 4, Major: 10, Minor: 0}, Size: 192, Flag: &kernelVersionIsAtLeast_4_10},
 	{Version: kernel.VersionInfo{Kernel: 4, Major: 18, Minor: 0}, Size: 200, Flag: &kernelVersionIsAtLeast_4_18},
 	{Version: kernel.VersionInfo{Kernel: 4, Major: 19, Minor: 0}, Size: 224, Flag: &kernelVersionIsAtLeast_4_19},
