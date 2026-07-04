@@ -231,6 +231,7 @@ func dialContext(network string) func(ctx context.Context, network, addr string)
 var (
 	conniverM sync.Mutex
 	connConn  *conniver.Conn
+	connReady chan struct{}
 )
 
 func getConniver() *conniver.Conn {
@@ -239,15 +240,46 @@ func getConniver() *conniver.Conn {
 	return connConn
 }
 
+// setConniver records the closed conn for the current hop. Passing nil resets
+// for a new hop and arms a fresh ready channel, so a hop never prints stats
+// left from a prior hop.
 func setConniver(c *conniver.Conn) {
 	conniverM.Lock()
 	defer conniverM.Unlock()
 	connConn = c
+	if c == nil {
+		connReady = make(chan struct{})
+		return
+	}
+	if connReady != nil {
+		close(connReady)
+		connReady = nil
+	}
+}
+
+// waitConniver blocks until this hop's Closed callback has fired, or the
+// timeout elapses. DisableKeepAlives means the conn is never pooled, so
+// CloseIdleConnections can't force the callback and the read would otherwise
+// race the transport's readLoop.
+func waitConniver(timeout time.Duration) {
+	conniverM.Lock()
+	ready := connReady
+	conniverM.Unlock()
+	if ready == nil {
+		return
+	}
+	select {
+	case <-ready:
+	case <-time.After(timeout):
+	}
 }
 
 // visit visits a url and times the interaction.
 // If the response is a 30x, visit follows the redirect.
 func visit(url *url.URL) {
+	// drop any stats left from a prior hop before this hop opens its conn.
+	setConniver(nil)
+
 	req := newRequest(httpMethod, url, postBody)
 
 	var t0, t1, t2, t3, t4, t5, t6 time.Time
@@ -378,8 +410,10 @@ func visit(url *url.URL) {
 		return strings.Join(v, "\n")
 	}
 
-	// Trigger connection close to gather final tcpinfo
+	// Trigger connection close to gather final tcpinfo, then wait for the
+	// Closed callback so the stats below belong to this hop.
 	client.CloseIdleConnections()
+	waitConniver(2 * time.Second)
 
 	fmt.Println()
 
