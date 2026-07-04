@@ -347,6 +347,8 @@ func (w *Conn) Read(b []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	// defer so a panicking conn still drains inFlight, else Close() deadlocks
+	defer w.finishIO()
 
 	n, err := conn.Read(b)
 	w.Lock()
@@ -364,7 +366,6 @@ func (w *Conn) Read(b []byte) (int, error) {
 		w.RxErr = err
 	}
 	w.Unlock()
-	w.finishIO()
 	return n, err
 }
 
@@ -374,6 +375,8 @@ func (w *Conn) Write(b []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	// defer so a panicking conn still drains inFlight, else Close() deadlocks
+	defer w.finishIO()
 
 	n, err := conn.Write(b)
 	w.Lock()
@@ -391,7 +394,6 @@ func (w *Conn) Write(b []byte) (int, error) {
 		w.TxErr = err
 	}
 	w.Unlock()
-	w.finishIO()
 	return n, err
 }
 
