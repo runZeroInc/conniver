@@ -11,10 +11,10 @@ import (
 
 // VersionInfo holds information about the kernel.
 type VersionInfo struct {
-	kvi   string // Version of the kernel (e.g. 6.1.7601.17592 -> 6)
-	major int    // Major part of the kernel version (e.g. 6.1.7601.17592 -> 1)
-	minor int    // Minor part of the kernel version (e.g. 6.1.7601.17592 -> 7601)
-	build int    // Build number of the kernel version (e.g. 6.1.7601.17592 -> 17592)
+	kvi   string // BuildLabEx registry string (e.g. 7601.17592.amd64fre.win7sp1_gdr.110408-1631)
+	major int    // major version, low byte of GetVersion (e.g. 6.1.7601 -> 6)
+	minor int    // minor version, second byte of GetVersion (e.g. 6.1.7601 -> 1)
+	build int    // build number, high word of GetVersion (e.g. 6.1.7601 -> 7601)
 }
 
 func (k *VersionInfo) String() string {
