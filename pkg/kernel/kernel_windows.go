@@ -37,16 +37,13 @@ func GetKernelVersion() (*VersionInfo, error) {
 	}
 	KVI.kvi = blex
 
-	// Important - dockerd.exe MUST be manifested for this API to return
-	// the correct information.
-	dwVersion, err := windows.GetVersion()
-	if err != nil {
-		return KVI, err
-	}
+	// RtlGetVersion ignores the manifest shim that caps GetVersion at 6.2.9200
+	// for unmanifested processes, so it reports the real version on Win 8.1+.
+	ver := windows.RtlGetVersion()
 
-	KVI.major = int(dwVersion & 0xFF)
-	KVI.minor = int((dwVersion & 0xFF00) >> 8)
-	KVI.build = int((dwVersion & 0xFFFF0000) >> 16)
+	KVI.major = int(ver.MajorVersion)
+	KVI.minor = int(ver.MinorVersion)
+	KVI.build = int(ver.BuildNumber)
 
 	return KVI, nil
 }
