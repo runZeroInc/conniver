@@ -446,10 +446,11 @@ func (packed *RawTCPInfo) Unpack() *SysInfo {
 	unpacked.Lost = packed.lost
 	unpacked.Retrans = packed.retrans
 	unpacked.Fackets = packed.fackets
-	unpacked.LastTxAt = time.Duration(packed.last_data_sent) * timeFieldMultiplier
+	// the kernel emits tcpi_last_data_* / tcpi_last_ack_recv via jiffies_to_msecs, so these are milliseconds, not microseconds
+	unpacked.LastTxAt = time.Duration(packed.last_data_sent) * time.Millisecond
 	unpacked.LastTxAckAt = time.Duration(packed.last_ack_sent) * timeFieldMultiplier
-	unpacked.LastRxAt = time.Duration(packed.last_data_recv) * timeFieldMultiplier
-	unpacked.LastRxAckAt = time.Duration(packed.last_ack_recv) * timeFieldMultiplier
+	unpacked.LastRxAt = time.Duration(packed.last_data_recv) * time.Millisecond
+	unpacked.LastRxAckAt = time.Duration(packed.last_ack_recv) * time.Millisecond
 	unpacked.PMTU = packed.pmtu
 	unpacked.RxSSThreshold = packed.rcv_ssthresh
 	unpacked.RTT = time.Duration(packed.rtt) * timeFieldMultiplier
