@@ -250,6 +250,38 @@ func TestIsContainerized(t *testing.T) {
 	}
 }
 
+// cgroup v2 PID 1 reads a bare "0::/" that ends in ":/", so the suffix check
+// alone treats it as host; the marker file is what disambiguates
+func TestIsContainerizedCgroupV2(t *testing.T) {
+	backupCgroup := proc1Cgroup
+	backupDocker := dockerEnv
+	dir := os.TempDir()
+	proc1Cgroup = filepath.Join(dir, "proc1CgroupV2")
+	dockerEnv = filepath.Join(dir, "dockerenv")
+
+	defer func() {
+		os.Remove(proc1Cgroup)
+		os.Remove(dockerEnv)
+		proc1Cgroup = backupCgroup
+		dockerEnv = backupDocker
+	}()
+
+	if err := os.WriteFile(proc1Cgroup, []byte("0::/\n"), 0o600); err != nil {
+		t.Fatalf("failed to write to %s: %v", proc1Cgroup, err)
+	}
+	if err := os.WriteFile(dockerEnv, []byte{}, 0o600); err != nil {
+		t.Fatalf("failed to write to %s: %v", dockerEnv, err)
+	}
+
+	inContainer, err := IsContainerized()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !inContainer {
+		t.Fatal("Wrongly assuming non-containerized on cgroup v2 with docker marker")
+	}
+}
+
 func TestOsReleaseFallback(t *testing.T) {
 	backup := etcOsRelease
 	altBackup := altOsRelease
