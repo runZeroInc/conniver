@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -60,6 +61,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("get: %v", err)
 	}
+	// drain the body before closing so the conn can go back in the pool;
+	// otherwise it is never reused and the CloseIdleConnections call below has
+	// nothing to close.
+	_, _ = io.Copy(io.Discard, resp.Body)
 	_ = resp.Body.Close()
 
 	// Use client.CloseIdleConnections() to trigger the closed events for all wrapped connections.
