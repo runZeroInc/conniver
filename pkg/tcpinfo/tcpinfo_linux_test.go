@@ -19,7 +19,7 @@ import (
 
 const (
 	minKernel      int = 6
-	minKernelMajor int = 2
+	minKernelMajor int = 7
 	minKernelMinor int = 0
 )
 
