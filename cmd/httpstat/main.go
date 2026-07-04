@@ -262,8 +262,11 @@ func visit(url *url.URL) {
 			}
 		},
 		ConnectDone: func(net, addr string, err error) {
+			// fires once per candidate address; a single failure is not fatal,
+			// the dialer still has other addresses to try. let client.Do below
+			// report the total failure once every address is exhausted.
 			if err != nil {
-				log.Fatalf("unable to connect to host %v: %v", addr, err)
+				return
 			}
 			t2 = time.Now()
 
