@@ -196,6 +196,7 @@ func (packed *RawInfo) Unpack() *SysInfo {
 	unpacked.TxRetransmitPackets = packed.TxRetransmitPackets
 
 	unpacked.TxOptions = []Option{}
+	unpacked.RxOptions = []Option{}
 	for _, flag := range tcpOptions {
 		if packed.Options&flag == 0 {
 			continue
