@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"syscall"
 	"time"
+	"unsafe"
 
 	"golang.org/x/sys/unix"
 )
@@ -381,6 +382,14 @@ func (s *SysInfo) MarshalJSON() ([]byte, error) {
 // timeFieldMultiplier is used to convert fields representing time in microseconds to time.Duration (nanoseconds).
 var timeFieldMultiplier = time.Microsecond
 
+// nativeIsBigEndian reports the host byte order. The wscale and
+// app-limited/fastopen values are C bitfields whose member order flips between
+// big- and little-endian, so Unpack has to know which way to read them.
+var nativeIsBigEndian = func() bool {
+	var probe uint16 = 1
+	return *(*byte)(unsafe.Pointer(&probe)) == 0
+}()
+
 // Unpack copies fields from RawTCPInfo to TCPInfo, taking care of the bitfields and marking fields not provided
 // by older kernel versions as null. In the future it may deal with varying lengths of the struct returned by the
 // system call (i.e., kernels older than 5.4.0).
@@ -394,19 +403,38 @@ func (packed *RawTCPInfo) Unpack() *SysInfo {
 	unpacked.Retransmits = packed.retransmits
 	unpacked.Probes = packed.probes
 	unpacked.Backoff = packed.backoff
-	unpacked.TxWindowScale = packed.bitfield0 & 0x0f
-	unpacked.RxWindowScale = packed.bitfield0 >> 4
+	// The wscale and app-limited/fastopen values are C bitfields, so where they
+	// sit in the byte depends on host byte order: the first-declared member is
+	// in the low bits on little-endian and the high bits on big-endian. Read
+	// them per-endianness so s390x/ppc64/mips agree with amd64 rather than
+	// getting swapped nibbles and shifted flags.
+	b0, b1 := packed.bitfield0, packed.bitfield1
+	if nativeIsBigEndian {
+		unpacked.TxWindowScale = b0 >> 4
+		unpacked.RxWindowScale = b0 & 0x0f
+	} else {
+		unpacked.TxWindowScale = b0 & 0x0f
+		unpacked.RxWindowScale = b0 >> 4
+	}
 
 	unpacked.DeliveryRateAppLimited = NullableBool{Valid: false}
 	if kernelVersionIsAtLeast_4_9 {
 		unpacked.DeliveryRateAppLimited.Valid = true
-		unpacked.DeliveryRateAppLimited.Value = packed.bitfield1&1 == 1 // added in v4.9
+		if nativeIsBigEndian {
+			unpacked.DeliveryRateAppLimited.Value = (b1>>7)&1 == 1 // added in v4.9
+		} else {
+			unpacked.DeliveryRateAppLimited.Value = b1&1 == 1 // added in v4.9
+		}
 	}
 
 	unpacked.FastOpenClientFail = NullableUint8{Valid: false}
 	if kernelVersionIsAtLeast_5_5 { // added in v5.5
 		unpacked.FastOpenClientFail.Valid = true
-		unpacked.FastOpenClientFail.Value = (packed.bitfield1 >> 1) & 0x3
+		if nativeIsBigEndian {
+			unpacked.FastOpenClientFail.Value = (b1 >> 5) & 0x3
+		} else {
+			unpacked.FastOpenClientFail.Value = (b1 >> 1) & 0x3
+		}
 	}
 
 	unpacked.RTO = time.Duration(packed.rto) * timeFieldMultiplier
