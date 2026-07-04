@@ -528,14 +528,17 @@ func (packed *RawTCPInfo) Unpack() *SysInfo {
 
 	unpacked.RxWindow = NullableUint32{Valid: false}
 	unpacked.Rehash = NullableUint32{Valid: false}
-	unpacked.TotalRTO = NullableUint16{Valid: false}
-	unpacked.TotalRTORecoveries = NullableUint16{Valid: false}
-	unpacked.TotalRTOTime = NullableUint32{Valid: false}
 	if kernelVersionIsAtLeast_6_2 {
 		unpacked.RxWindow.Valid = true
 		unpacked.RxWindow.Value = packed.rcv_wnd
 		unpacked.Rehash.Valid = true
 		unpacked.Rehash.Value = packed.rehash
+	}
+
+	unpacked.TotalRTO = NullableUint16{Valid: false}
+	unpacked.TotalRTORecoveries = NullableUint16{Valid: false}
+	unpacked.TotalRTOTime = NullableUint32{Valid: false}
+	if kernelVersionIsAtLeast_6_7 {
 		unpacked.TotalRTO.Valid = true
 		unpacked.TotalRTO.Value = packed.total_rto
 		unpacked.TotalRTORecoveries.Valid = true
