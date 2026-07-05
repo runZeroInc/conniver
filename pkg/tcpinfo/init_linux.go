@@ -61,9 +61,12 @@ func init() {
 }
 
 func adaptToKernelVersion() {
-	linuxKernelVersion, err := kernel.GetKernelVersion()
-	if err != nil {
-		linuxKernelVersion = &kernel.VersionInfo{Kernel: 2, Major: 6, Minor: 2} // Fallback to very old kernel version
+	if linuxKernelVersion == nil {
+		var err error
+		linuxKernelVersion, err = kernel.GetKernelVersion()
+		if err != nil {
+			linuxKernelVersion = &kernel.VersionInfo{Kernel: 2, Major: 6, Minor: 2} // Fallback to very old kernel version
+		}
 	}
 
 	for i := len(tcpInfoSizes) - 1; i >= 0; i-- {
