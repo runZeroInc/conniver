@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	minKernel      int = 5
-	minKernelMajor int = 5
+	minKernel      int = 6
+	minKernelMajor int = 2
 	minKernelMinor int = 0
 )
 
