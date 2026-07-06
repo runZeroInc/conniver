@@ -19,7 +19,7 @@ import (
 
 const (
 	minKernel      int = 6
-	minKernelMajor int = 2
+	minKernelMajor int = 7
 	minKernelMinor int = 0
 )
 
@@ -267,6 +267,33 @@ func TestRawTCPInfo_Unpack(t *testing.T) {
 				t.Errorf("For %s Unpack():\n\t got = %#v\n\twant = %#v", tt.name, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestRawTCPInfo_UnpackLastDataUnits(t *testing.T) {
+	linuxKernelVersion = &kernel.VersionInfo{Kernel: minKernel, Major: minKernelMajor, Minor: minKernelMinor}
+	adaptToKernelVersion()
+
+	// tcpi_last_data_* are kernel milliseconds; rtt is genuinely microseconds
+	raw := RawTCPInfo{
+		last_data_sent: 2000,
+		last_data_recv: 2000,
+		last_ack_recv:  2000,
+		rtt:            2000,
+	}
+
+	got := raw.Unpack()
+	if got.LastRxAt != 2*time.Second {
+		t.Errorf("LastRxAt = %v, want %v", got.LastRxAt, 2*time.Second)
+	}
+	if got.LastTxAt != 2*time.Second {
+		t.Errorf("LastTxAt = %v, want %v", got.LastTxAt, 2*time.Second)
+	}
+	if got.LastRxAckAt != 2*time.Second {
+		t.Errorf("LastRxAckAt = %v, want %v", got.LastRxAckAt, 2*time.Second)
+	}
+	if got.RTT != 2*time.Millisecond {
+		t.Errorf("RTT = %v, want %v", got.RTT, 2*time.Millisecond)
 	}
 }
 

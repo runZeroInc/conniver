@@ -196,6 +196,7 @@ func (packed *RawInfo) Unpack() *SysInfo {
 	unpacked.TxRetransmitPackets = packed.TxRetransmitPackets
 
 	unpacked.TxOptions = []Option{}
+	unpacked.RxOptions = []Option{}
 	for _, flag := range tcpOptions {
 		if packed.Options&flag == 0 {
 			continue
@@ -226,7 +227,7 @@ func (s *SysInfo) ToInfo() *Info {
 		RxWindow:      uint64(s.RxWindow),
 		TxSSThreshold: uint64(s.TxSSThreshold),
 		TxWindowBytes: uint64(s.TxCWindow),
-		TxWindowSegs:  uint64(s.TxWindow),
+		// no TxWindowSegs on darwin: xnu has no per-segment cwnd, and snd_wnd is bytes not segments
 		Retransmits:   s.TxRetransmitPackets,
 		Sys:           s,
 	}

@@ -14,7 +14,8 @@ func GetOperatingSystem() (string, error) {
 	if err := unix.Uname(utsname); err != nil {
 		return "", err
 	}
-	return unix.ByteSliceToString(utsname.Machine[:]), nil
+	// Sysname is the OS name (e.g. "Darwin"); Machine is the CPU arch
+	return unix.ByteSliceToString(utsname.Sysname[:]), nil
 }
 
 // GetOperatingSystemVersion gets the version of the current operating system, as a string.

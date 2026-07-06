@@ -1,4 +1,4 @@
-//go:build !windows && !aix
+//go:build linux || freebsd || openbsd || darwin || netbsd || dragonfly
 
 package kernel
 

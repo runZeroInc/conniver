@@ -18,7 +18,22 @@ var (
 
 	// used by stateless systems like Clear Linux
 	altOsRelease = "/usr/lib/os-release"
+
+	// marker files the runtime drops; on a cgroup v2 host /proc/1/cgroup is a
+	// bare "0::/" and can't be told from the host by suffix alone
+	dockerEnv    = "/.dockerenv"
+	containerEnv = "/run/.containerenv"
 )
+
+// cgroup path fragments naming a container runtime, for the cgroup v2 case
+// where the host check by suffix does not fire
+var containerCgroupMarkers = [][]byte{
+	[]byte("/docker"),
+	[]byte("/lxc"),
+	[]byte("/kubepods"),
+	[]byte("/containerd"),
+	[]byte("/machine"),
+}
 
 // GetOperatingSystem gets the name of the current operating system.
 func GetOperatingSystem() (string, error) {
@@ -62,19 +77,42 @@ func getValueFromOsRelease(key string) (string, error) {
 		}
 	}
 
+	// a stopped scan (oversized line, mid-read i/o error) must not pass as an empty value
+	if err := scanner.Err(); err != nil {
+		return "", err
+	}
+
 	return value, nil
 }
 
 // IsContainerized returns true if we are running inside a container.
 func IsContainerized() (bool, error) {
+	if fileExists(dockerEnv) || fileExists(containerEnv) {
+		return true, nil
+	}
 	b, err := os.ReadFile(proc1Cgroup)
 	if err != nil {
 		return false, err
 	}
 	for line := range bytes.SplitSeq(b, []byte{'\n'}) {
-		if len(line) > 0 && !bytes.HasSuffix(line, []byte(":/")) && !bytes.HasSuffix(line, []byte(":/init.scope")) {
+		if len(line) == 0 {
+			continue
+		}
+		// cgroup v1: a non-root path means containerized
+		if !bytes.HasSuffix(line, []byte(":/")) && !bytes.HasSuffix(line, []byte(":/init.scope")) {
 			return true, nil
+		}
+		// cgroup v2: single line whose path names a runtime
+		for _, marker := range containerCgroupMarkers {
+			if bytes.Contains(line, marker) {
+				return true, nil
+			}
 		}
 	}
 	return false, nil
+}
+
+func fileExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
 }

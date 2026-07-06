@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"syscall"
 	"time"
+	"unsafe"
 
 	"golang.org/x/sys/unix"
 )
@@ -173,7 +174,7 @@ type SysInfo struct {
 	Rehash                 NullableUint32   `tcpi:"name=rehash,prom_type=gauge,prom_help='PLB or timeout triggered rehash attempts.'" json:"rehash,omitempty"`
 	TotalRTO               NullableUint16   `tcpi:"name=total_rto,prom_type=counter,prom_help='Total number of RTO timeouts, including SYN/SYN-ACK and recurring timeouts.'" json:"totalRTO,omitempty"`
 	TotalRTORecoveries     NullableUint16   `tcpi:"name=total_rto_recoveries,prom_type=counter,prom_help='Total number of RTO recoveries, including any unfinished recovery.'" json:"totalRTORecoveries,omitempty"`
-	TotalRTOTime           NullableUint32   `tcpi:"name=total_rto_time,prom_type=counter,prom_help='Total time spent in RTO recoveries in nanoseconds, including any unfinished recovery.'" json:"totalRTOTime,omitempty"`
+	TotalRTOTime           NullableUint32   `tcpi:"name=total_rto_time,prom_type=counter,prom_help='Total time spent in RTO recoveries in milliseconds, including any unfinished recovery.'" json:"totalRTOTime,omitempty"`
 	CCAlgorithm            string           `tcpi:"name=cc_algorithm,prom_type=gauge,prom_help='Congestion control algorithm in use for this connection.'" json:"ccAlgorithm,omitempty"`
 	// Vegas
 	CCVegasEnabled NullableUint32   `tcpi:"name=cc_vegas_enabled,prom_type=gauge,prom_help='Whether TCP Vegas is enabled system-wide (true/false).'" json:"ccVegasEnabled,omitempty"`
@@ -381,6 +382,14 @@ func (s *SysInfo) MarshalJSON() ([]byte, error) {
 // timeFieldMultiplier is used to convert fields representing time in microseconds to time.Duration (nanoseconds).
 var timeFieldMultiplier = time.Microsecond
 
+// nativeIsBigEndian reports the host byte order. The wscale and
+// app-limited/fastopen values are C bitfields whose member order flips between
+// big- and little-endian, so Unpack has to know which way to read them.
+var nativeIsBigEndian = func() bool {
+	var probe uint16 = 1
+	return *(*byte)(unsafe.Pointer(&probe)) == 0
+}()
+
 // Unpack copies fields from RawTCPInfo to TCPInfo, taking care of the bitfields and marking fields not provided
 // by older kernel versions as null. In the future it may deal with varying lengths of the struct returned by the
 // system call (i.e., kernels older than 5.4.0).
@@ -394,19 +403,38 @@ func (packed *RawTCPInfo) Unpack() *SysInfo {
 	unpacked.Retransmits = packed.retransmits
 	unpacked.Probes = packed.probes
 	unpacked.Backoff = packed.backoff
-	unpacked.TxWindowScale = packed.bitfield0 & 0x0f
-	unpacked.RxWindowScale = packed.bitfield0 >> 4
+	// The wscale and app-limited/fastopen values are C bitfields, so where they
+	// sit in the byte depends on host byte order: the first-declared member is
+	// in the low bits on little-endian and the high bits on big-endian. Read
+	// them per-endianness so s390x/ppc64/mips agree with amd64 rather than
+	// getting swapped nibbles and shifted flags.
+	b0, b1 := packed.bitfield0, packed.bitfield1
+	if nativeIsBigEndian {
+		unpacked.TxWindowScale = b0 >> 4
+		unpacked.RxWindowScale = b0 & 0x0f
+	} else {
+		unpacked.TxWindowScale = b0 & 0x0f
+		unpacked.RxWindowScale = b0 >> 4
+	}
 
 	unpacked.DeliveryRateAppLimited = NullableBool{Valid: false}
 	if kernelVersionIsAtLeast_4_9 {
 		unpacked.DeliveryRateAppLimited.Valid = true
-		unpacked.DeliveryRateAppLimited.Value = packed.bitfield1&1 == 1 // added in v4.9
+		if nativeIsBigEndian {
+			unpacked.DeliveryRateAppLimited.Value = (b1>>7)&1 == 1 // added in v4.9
+		} else {
+			unpacked.DeliveryRateAppLimited.Value = b1&1 == 1 // added in v4.9
+		}
 	}
 
 	unpacked.FastOpenClientFail = NullableUint8{Valid: false}
 	if kernelVersionIsAtLeast_5_5 { // added in v5.5
 		unpacked.FastOpenClientFail.Valid = true
-		unpacked.FastOpenClientFail.Value = (packed.bitfield1 >> 1) & 0x3
+		if nativeIsBigEndian {
+			unpacked.FastOpenClientFail.Value = (b1 >> 5) & 0x3
+		} else {
+			unpacked.FastOpenClientFail.Value = (b1 >> 1) & 0x3
+		}
 	}
 
 	unpacked.RTO = time.Duration(packed.rto) * timeFieldMultiplier
@@ -418,10 +446,11 @@ func (packed *RawTCPInfo) Unpack() *SysInfo {
 	unpacked.Lost = packed.lost
 	unpacked.Retrans = packed.retrans
 	unpacked.Fackets = packed.fackets
-	unpacked.LastTxAt = time.Duration(packed.last_data_sent) * timeFieldMultiplier
+	// the kernel emits tcpi_last_data_* / tcpi_last_ack_recv via jiffies_to_msecs, so these are milliseconds, not microseconds
+	unpacked.LastTxAt = time.Duration(packed.last_data_sent) * time.Millisecond
 	unpacked.LastTxAckAt = time.Duration(packed.last_ack_sent) * timeFieldMultiplier
-	unpacked.LastRxAt = time.Duration(packed.last_data_recv) * timeFieldMultiplier
-	unpacked.LastRxAckAt = time.Duration(packed.last_ack_recv) * timeFieldMultiplier
+	unpacked.LastRxAt = time.Duration(packed.last_data_recv) * time.Millisecond
+	unpacked.LastRxAckAt = time.Duration(packed.last_ack_recv) * time.Millisecond
 	unpacked.PMTU = packed.pmtu
 	unpacked.RxSSThreshold = packed.rcv_ssthresh
 	unpacked.RTT = time.Duration(packed.rtt) * timeFieldMultiplier
@@ -528,14 +557,17 @@ func (packed *RawTCPInfo) Unpack() *SysInfo {
 
 	unpacked.RxWindow = NullableUint32{Valid: false}
 	unpacked.Rehash = NullableUint32{Valid: false}
-	unpacked.TotalRTO = NullableUint16{Valid: false}
-	unpacked.TotalRTORecoveries = NullableUint16{Valid: false}
-	unpacked.TotalRTOTime = NullableUint32{Valid: false}
 	if kernelVersionIsAtLeast_6_2 {
 		unpacked.RxWindow.Valid = true
 		unpacked.RxWindow.Value = packed.rcv_wnd
 		unpacked.Rehash.Valid = true
 		unpacked.Rehash.Value = packed.rehash
+	}
+
+	unpacked.TotalRTO = NullableUint16{Valid: false}
+	unpacked.TotalRTORecoveries = NullableUint16{Valid: false}
+	unpacked.TotalRTOTime = NullableUint32{Valid: false}
+	if kernelVersionIsAtLeast_6_7 {
 		unpacked.TotalRTO.Valid = true
 		unpacked.TotalRTO.Value = packed.total_rto
 		unpacked.TotalRTORecoveries.Valid = true

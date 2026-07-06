@@ -220,7 +220,7 @@ func (s *SysInfo) ToInfo() *Info {
 	info := &Info{
 		State:        s.StateName,
 		TxMSS:        uint64(s.MSS),
-		RTT:          s.RTTMin,
+		RTT:          s.RTT,
 		RxWindow:     uint64(s.RxWindow),
 		TxWindowSegs: uint64(s.TxWindow),
 		Retransmits:  uint64(s.SynRetrans),
